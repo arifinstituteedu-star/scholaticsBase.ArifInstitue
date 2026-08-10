@@ -1,0 +1,188 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ScholasticBase — Production Security Rules
+// Project : scholasticbase-63086
+// ═══════════════════════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Ensures the client has an active Firebase Auth session token
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Validates that write operations come from an authenticated session or valid app write payload
+    function isValidAppWrite() {
+      return signedIn() || (request.resource != null && request.resource.data != null && (request.resource.data.schemaVersion != null || request.resource.data.updatedAt != null));
+    }
+
+    // ─── Schools Registry ─────────────────────────────────────────────────────
+    match /schools/{schoolId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /schools/{schoolId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    // ─── User Accounts ────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if isValidAppWrite();
+      allow delete: if signedIn();
+    }
+
+    // ─── School-Wide Config ───────────────────────────────────────────────────
+    match /schoolData/{docId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /schoolData/{docId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    // ─── Teachers & Students ──────────────────────────────────────────────────
+    match /teachers/{teacherId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /teachers/{teacherId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    match /students/{studentId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /students/{studentId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    // ─── Classes & Subjects ───────────────────────────────────────────────────
+    match /classes/{classId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /classes/{classId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    match /subjects/{subjectId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /subjects/{subjectId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    match /groupSubjects/{docId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /groupSubjects/{docId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    // ─── Exam Sessions & Results ──────────────────────────────────────────────
+    match /exams/{examId} {
+      allow read: if true;
+      allow create, update: if isValidAppWrite();
+      allow delete: if signedIn() || (resource != null && resource.data.status == 'deleted');
+    }
+    match /exams/{examId}/{document=**} {
+      allow read: if true;
+      allow create, update: if isValidAppWrite();
+      allow delete: if signedIn();
+    }
+
+    match /results/{resultId} {
+      allow read: if true;
+      allow create, update: if isValidAppWrite();
+      allow delete: if signedIn();
+    }
+    match /results/{resultId}/{document=**} {
+      allow read: if true;
+      allow create, update: if isValidAppWrite();
+      allow delete: if signedIn();
+    }
+
+    // ─── Grades & Rank Records ────────────────────────────────────────────────
+    match /grades/{gradeId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /grades/{gradeId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    match /positions/{positionId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /positions/{positionId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    // ─── Fee Collections & Approvals ──────────────────────────────────────────
+    match /feeStructures/{docId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /feeStructures/{docId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    match /feePayments/{docId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /feePayments/{docId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    match /feeApprovals/{docId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /feeApprovals/{docId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    match /feeConfigs/{docId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /feeConfigs/{docId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+
+    // ─── Dynamic Multi-Tenant School Collections & Subcollections ───────────
+    match /{dynamicCollection}/{docId} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+    match /{dynamicCollection}/{docId}/{document=**} {
+      allow read: if true;
+      allow write: if isValidAppWrite();
+    }
+  }
+}
+
+
+
+
