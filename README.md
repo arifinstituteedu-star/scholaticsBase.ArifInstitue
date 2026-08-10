@@ -1,0 +1,1 @@
+# scholaticsBase.ArifInstitue
