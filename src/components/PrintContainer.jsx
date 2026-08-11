@@ -27,6 +27,7 @@ export const PrintContainer = ({
   footerNote = 'Official Document — Valid without physical seal if verified digitally.',
   showTriggerButton = true,
   triggerBtnText = '🖨️ Print Document / Save PDF',
+  onPrint,
   children,
   className = '',
 }) => {
@@ -77,6 +78,10 @@ export const PrintContainer = ({
   });
 
   const handlePrint = () => {
+    if (typeof onPrint === 'function') {
+      onPrint();
+      return;
+    }
     if (typeof window !== 'undefined') {
       window.print();
     }

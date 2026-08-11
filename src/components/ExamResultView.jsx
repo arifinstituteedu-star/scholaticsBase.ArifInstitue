@@ -193,6 +193,7 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
   const [selectedResultKeys, setSelectedResultKeys] = useState([]);
   const [deletedResultKeys, setDeletedResultKeys] = useState([]);
   const [screenScale, setScreenScale] = useState(1);
+  const [isPrintingPdf, setIsPrintingPdf] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1492,10 +1493,10 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
     document.body.classList.remove('print-mode-tabulation');
     document.body.classList.add('print-mode-transcript');
 
-    const buildStyleContent = (zoomVal) => [
+    const buildStyleContent = () => [
       '@media print {',
-      '  @page { size: A4 portrait !important; margin: 3mm !important; }',
-      '  @page portrait-page { size: A4 portrait !important; margin: 3mm !important; }',
+      '  @page { size: A4 portrait !important; margin: 0mm !important; }',
+      '  @page portrait-page { size: A4 portrait !important; margin: 0mm !important; }',
       '  html, body {',
       '    width: 100% !important;',
       '    min-width: 100% !important;',
@@ -1528,7 +1529,7 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
       '    max-height: none !important;',
       '    margin: 0 !important;',
       '    padding: 0 !important;',
-      '    background: transparent !important;',
+      '    background: #ffffff !important;',
       '    box-shadow: none !important;',
       '    border: none !important;',
       '    transform: none !important;',
@@ -1565,7 +1566,7 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
       '    box-sizing: border-box !important;',
       '  }',
       '  body.print-mode-transcript .transcript-container {',
-      `    zoom: ${zoomVal.toFixed(4)} !important;`,
+      '    zoom: 1.0 !important;',
       '    transform: none !important;',
       '    -webkit-transform: none !important;',
       '    width: 100% !important;',
@@ -1573,45 +1574,29 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
       '    max-width: 100% !important;',
       '    box-sizing: border-box !important;',
       '    margin: 0 !important;',
-      '    border: 4px double #1e3a8a !important;',
-      '    outline: 2px solid #b91c1c !important;',
-      '    outline-offset: -6px !important;',
-      '    border-radius: 12px !important;',
-      '    background: #FFF2F2 !important;',
+      '    border: none !important;',
+      '    outline: none !important;',
+      '    box-shadow: none !important;',
+      '    border-radius: 0 !important;',
+      '    background: #ffffff !important;',
       '    -webkit-print-color-adjust: exact !important;',
       '    print-color-adjust: exact !important;',
       '    overflow: visible !important;',
       '    page-break-inside: avoid !important;',
       '    break-inside: avoid !important;',
       '  }',
-      '  body.print-mode-transcript .transcript-student-section {',
-      '    display: grid !important;',
-      '    grid-template-columns: 1fr 190px 105px !important;',
-      '    gap: 10px !important;',
-      '    align-items: start !important;',
-      '    flex-direction: row !important;',
-      '    width: 100% !important;',
-      '  }',
-      '  body.print-mode-transcript .transcript-student-grid {',
-      '    display: flex !important;',
-      '    flex-direction: column !important;',
-      '    grid-template-columns: none !important;',
-      '    width: 100% !important;',
-      '    order: 1 !important;',
-      '  }',
-      '  body.print-mode-transcript .transcript-info-field {',
-      '    display: flex !important;',
-      '    justify-content: space-between !important;',
-      '    align-items: center !important;',
-      '    gap: 8px !important;',
-      '    border-bottom: 1.5px dotted #a3b8cc !important;',
-      '  }',
       '  body.print-mode-transcript .transcript-info-label {',
       '    font-size: 11.5px !important;',
+      '    color: #1e3a8a !important;',
+      '    font-weight: 700 !important;',
+      '    font-family: "Times New Roman", Georgia, serif !important;',
       '    white-space: nowrap !important;',
       '  }',
       '  body.print-mode-transcript .transcript-info-value {',
       '    font-size: 13px !important;',
+      '    color: #0f172a !important;',
+      '    font-weight: 800 !important;',
+      '    font-family: "Times New Roman", Georgia, serif !important;',
       '    text-align: right !important;',
       '  }',
       '  body.print-mode-transcript .transcript-grading-box {',
@@ -1627,6 +1612,12 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
       '  body.print-mode-transcript .transcript-performance-table {',
       '    width: 100% !important;',
       '    table-layout: auto !important;',
+      '  }',
+      '  body.print-mode-transcript .transcript-performance-table th {',
+      '    background: #1e3a8a !important;',
+      '    color: #ffffff !important;',
+      '    font-weight: 800 !important;',
+      '    font-family: "Times New Roman", Georgia, serif !important;',
       '  }',
       '  body.print-mode-transcript .transcript-performance-table th,',
       '  body.print-mode-transcript .transcript-performance-table td {',
@@ -1653,46 +1644,23 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
       '  }',
       '  body.print-mode-transcript .transcript-summary-label {',
       '    font-size: 9px !important;',
+      '    color: #1e3a8a !important;',
+      '    font-weight: 700 !important;',
+      '    font-family: "Times New Roman", Georgia, serif !important;',
       '  }',
       '  body.print-mode-transcript .transcript-summary-value {',
       '    font-size: 14px !important;',
-      '  }',
-      '  body.print-mode-transcript .transcript-footer {',
-      '    display: grid !important;',
-      '    grid-template-columns: repeat(3, 1fr) !important;',
-      '    align-items: end !important;',
-      '    padding-top: 6px !important;',
-      '    margin-bottom: 4px !important;',
-      '    width: 100% !important;',
-      '    box-sizing: border-box !important;',
-      '    page-break-inside: avoid !important;',
-      '    break-inside: avoid !important;',
-      '  }',
-      '  .transcript-signature-col {',
-      '    display: flex !important;',
-      '    flex-direction: column !important;',
-      '    align-items: center !important;',
-      '    width: 100% !important;',
-      '  }',
-      '  .transcript-signature-line {',
-      '    width: 100% !important;',
-      '    max-width: 170px !important;',
-      '    border-top: 1.5px solid #1e3a8a !important;',
-      '  }',
-      '  .transcript-signature-label {',
-      '    font-size: 10.5px !important;',
+      '    color: #0f172a !important;',
+      '    font-weight: 800 !important;',
+      '    font-family: "Times New Roman", Georgia, serif !important;',
       '  }',
       '}',
     ].join('\n');
 
     const styleEl = document.createElement('style');
     styleEl.id = 'marksheet-portrait-override';
-    styleEl.textContent = buildStyleContent(1.0);
+    styleEl.textContent = buildStyleContent();
     document.head.appendChild(styleEl);
-
-    // Measure zoom after styles are applied
-    const zoom = computeMarksheetZoom();
-    styleEl.textContent = buildStyleContent(zoom);
 
     const cleanup = () => {
       document.body.classList.remove('print-mode-transcript');
@@ -1704,8 +1672,175 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
     window.print();
   };
 
-  const handlePrintMarkSheet = () => {
-    if (typeof window !== 'undefined') _triggerMarksheetPrint();
+  const handlePrintMarkSheet = async () => {
+    if (typeof window === 'undefined') return;
+    const element = document.querySelector('.transcript-container');
+    if (!element) {
+      _triggerMarksheetPrint();
+      return;
+    }
+
+    let printWin = null;
+    try {
+      printWin = window.open('about:blank', '_blank');
+      if (printWin) {
+        printWin.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Official PDF Marksheet</title>
+            <style>
+              body { display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1e293b; }
+              .loader-box { text-align: center; padding: 24px 36px; background: #ffffff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
+              .spinner { width: 36px; height: 36px; border: 3px solid #cbd5e1; border-top-color: #0284c7; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+              @keyframes spin { to { transform: rotate(360deg); } }
+            </style>
+          </head>
+          <body>
+            <div class="loader-box">
+              <div class="spinner"></div>
+              <h3 style="margin: 0 0 6px; font-size: 17px; font-weight: 700; color: #0f172a;">Preparing High-Resolution PDF...</h3>
+              <p style="margin: 0; font-size: 13px; color: #64748b;">Formatting 1-page A4 Bangladesh Board standard transcript.</p>
+            </div>
+          </body>
+          </html>
+        `);
+      }
+    } catch (_) {}
+
+    try {
+      setIsPrintingPdf(true);
+
+      // Load html2pdf dynamically if needed
+      if (!window.html2pdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      }
+
+      if (!window.html2pdf) {
+        if (printWin) printWin.close();
+        _triggerMarksheetPrint();
+        setIsPrintingPdf(false);
+        return;
+      }
+
+      const studentName = (selectedStudent?.name || 'Student').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
+      const className = (selectedStudent?.class || 'Class').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
+      const rollNo = (selectedStudent?.roll || '0').toString().trim();
+      const filename = `${studentName}_Official_Marksheet_Class${className}_Roll${rollNo}.pdf`;
+
+      // Save previous inline styles
+      const prevZoom      = element.style.zoom;
+      const prevWebkitZ   = element.style.WebkitZoom;
+      const prevWidth     = element.style.width;
+      const prevHeight    = element.style.height;
+      const prevMaxHeight = element.style.maxHeight;
+      const prevMinHeight = element.style.minHeight;
+      const prevMargin    = element.style.margin;
+      const prevBoxSizing = element.style.boxSizing;
+      const prevOverflow  = element.style.overflow;
+
+      // Force exact desktop PDF layout dimensions (exact same as download PDF Image 2)
+      element.style.zoom      = '';
+      element.style.WebkitZoom = '';
+      element.style.width     = '794px';
+      element.style.height    = '1118px';
+      element.style.maxHeight = '1118px';
+      element.style.minHeight = '1118px';
+      element.style.margin    = '0 auto';
+      element.style.boxSizing = 'border-box';
+      element.style.overflow  = 'hidden';
+
+      // Increased delay to allow full image, logo, and layout reflow (180ms)
+      await new Promise(resolve => setTimeout(resolve, 180));
+
+      const desktopOpt = {
+        margin: 0,
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+        pagebreak: { mode: ['avoid-all'] },
+      };
+
+      // Compile exact PDF Blob using html2pdf (same generator as download PDF)
+      let pdfBlob = null;
+      try {
+        pdfBlob = await window.html2pdf().set(desktopOpt).from(element).output('blob');
+      } catch (e1) {
+        pdfBlob = await window.html2pdf().set(desktopOpt).from(element).outputPdf('blob');
+      }
+
+      const blobUrl = URL.createObjectURL(pdfBlob);
+
+      // Restore inline element styles immediately after capturing canvas
+      element.style.zoom      = prevZoom;
+      element.style.WebkitZoom = prevWebkitZ;
+      element.style.width     = prevWidth;
+      element.style.height    = prevHeight;
+      element.style.maxHeight = prevMaxHeight;
+      element.style.minHeight = prevMinHeight;
+      element.style.margin    = prevMargin;
+      element.style.boxSizing = prevBoxSizing;
+      element.style.overflow  = prevOverflow;
+
+      if (printWin && !printWin.closed) {
+        printWin.document.open();
+        printWin.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>${studentName}_Official_Marksheet_PDF</title>
+            <style>
+              html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #525659; }
+              iframe { width: 100%; height: 100%; border: none; }
+            </style>
+          </head>
+          <body>
+            <iframe id="pdfViewerFrame" src="${blobUrl}"></iframe>
+            <script>
+              window.onload = function() {
+                var frame = document.getElementById('pdfViewerFrame');
+                if (frame) {
+                  setTimeout(function() {
+                    try {
+                      frame.contentWindow.focus();
+                      frame.contentWindow.print();
+                    } catch(e) {}
+                  }, 400);
+                }
+              };
+            </script>
+          </body>
+          </html>
+        `);
+        printWin.document.close();
+      } else {
+        window.open(blobUrl, '_blank');
+      }
+
+      setIsPrintingPdf(false);
+
+      setTimeout(() => {
+        try { URL.revokeObjectURL(blobUrl); } catch (_) {}
+      }, 60000);
+
+    } catch (err) {
+      console.warn('html2pdf print error, falling back to window.print():', err);
+      if (printWin) printWin.close();
+      _triggerMarksheetPrint();
+      setIsPrintingPdf(false);
+    }
   };
 
   const handleDownloadPdf = async () => {
@@ -1719,18 +1854,6 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
       const rollNo = (selectedStudent?.roll || '0').toString().trim();
       const filename = `${studentName}_Official_Marksheet_Class${className}_Roll${rollNo}.pdf`;
 
-      // Store original inline style properties
-      const prevZoom = element.style.zoom;
-      const prevWebkitZoom = element.style.WebkitZoom;
-      const prevWidth = element.style.width;
-      const prevMargin = element.style.margin;
-
-      // Force 1:1 scale during capture
-      element.style.zoom = '1';
-      element.style.WebkitZoom = '1';
-      element.style.width = '794px';
-      element.style.margin = '0 auto';
-
       // Load html2pdf dynamically if needed
       if (!window.html2pdf) {
         await new Promise((resolve, reject) => {
@@ -1741,32 +1864,114 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
           document.body.appendChild(script);
         });
       }
+      if (!window.html2pdf) return;
 
-      if (window.html2pdf) {
-        const opt = {
+      const isMobile = window.innerWidth < 820;
+
+      if (isMobile) {
+        // ── MOBILE: Dedicated Mobile PDF Download capture ──
+        const prevZoom = element.style.zoom;
+        const prevWebkitZoom = element.style.WebkitZoom;
+        const prevWidth = element.style.width;
+        const prevHeight = element.style.height;
+        const prevMaxHeight = element.style.maxHeight;
+        const prevMinHeight = element.style.minHeight;
+        const prevMargin = element.style.margin;
+        const prevBoxSizing = element.style.boxSizing;
+        const prevOverflow = element.style.overflow;
+
+        element.style.zoom = '1';
+        element.style.WebkitZoom = '1';
+        element.style.width = '794px';
+        element.style.height = '1118px';
+        element.style.maxHeight = '1118px';
+        element.style.minHeight = '1118px';
+        element.style.margin = '0 auto';
+        element.style.boxSizing = 'border-box';
+        element.style.overflow = 'hidden';
+
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const mobileOpt = {
           margin: 0,
           filename: filename,
           image: { type: 'jpeg', quality: 0.98 },
           html2canvas: {
             scale: 2,
             useCORS: true,
+            allowTaint: true,
             logging: false,
             scrollY: 0,
             scrollX: 0,
             windowWidth: 794,
           },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+          pagebreak: { mode: ['avoid-all'] },
         };
 
-        await window.html2pdf().set(opt).from(element).save();
+        await window.html2pdf().set(mobileOpt).from(element).save();
+
+        element.style.zoom = prevZoom;
+        element.style.WebkitZoom = prevWebkitZoom;
+        element.style.width = prevWidth;
+        element.style.height = prevHeight;
+        element.style.maxHeight = prevMaxHeight;
+        element.style.minHeight = prevMinHeight;
+        element.style.margin = prevMargin;
+        element.style.boxSizing = prevBoxSizing;
+        element.style.overflow = prevOverflow;
+
+      } else {
+        // ── DESKTOP: Reset zoom + A4 width ──
+        const prevZoom = element.style.zoom;
+        const prevWebkitZ = element.style.WebkitZoom;
+        const prevWidth = element.style.width;
+        const prevHeight = element.style.height;
+        const prevMaxHeight = element.style.maxHeight;
+        const prevMinHeight = element.style.minHeight;
+        const prevMargin = element.style.margin;
+        const prevBoxSizing = element.style.boxSizing;
+        const prevOverflow = element.style.overflow;
+
+        element.style.zoom = '';
+        element.style.WebkitZoom = '';
+        element.style.width = '794px';
+        element.style.height = '1118px';
+        element.style.maxHeight = '1118px';
+        element.style.minHeight = '1118px';
+        element.style.margin = '0 auto';
+        element.style.boxSizing = 'border-box';
+        element.style.overflow = 'hidden';
+
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const desktopOpt = {
+          margin: 0,
+          filename: filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+          },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+          pagebreak: { mode: ['avoid-all'] },
+        };
+
+        await window.html2pdf().set(desktopOpt).from(element).save();
+
+        element.style.zoom      = prevZoom;
+        element.style.WebkitZoom = prevWebkitZ;
+        element.style.width     = prevWidth;
+        element.style.height    = prevHeight;
+        element.style.maxHeight = prevMaxHeight;
+        element.style.minHeight = prevMinHeight;
+        element.style.margin    = prevMargin;
+        element.style.boxSizing = prevBoxSizing;
+        element.style.overflow  = prevOverflow;
       }
 
-      // Restore original inline styles
-      element.style.zoom = prevZoom;
-      element.style.WebkitZoom = prevWebkitZoom;
-      element.style.width = prevWidth;
-      element.style.margin = prevMargin;
     } catch (err) {
       console.warn('html2pdf download error:', err);
     }
@@ -3078,7 +3283,7 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
        Professional Marksheet Print & PDF Download Functions
        ───────────────────────────────────────────────────────────── */
     const triggerProfessionalMarksheetPrint = () => {
-      if (typeof window !== 'undefined') _triggerMarksheetPrint();
+      if (typeof window !== 'undefined') handlePrintMarkSheet();
     };
 
     const handleDownloadPdfFile = async () => {
@@ -3106,38 +3311,112 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
         const rollNo = (selectedStudent?.roll || '0').toString().trim();
         const filename = `${studentName}_Official_Marksheet_Class${className}_Roll${rollNo}.pdf`;
 
-        // Store original inline style properties
-        const prevWidth = element.style.width;
-        const prevMargin = element.style.margin;
-        const prevBoxSizing = element.style.boxSizing;
+        const isMobile = window.innerWidth < 820;
 
-        // Force fixed width & 0 margin during capture to eliminate blank first page and overflow
-        element.style.width = '790px';
-        element.style.margin = '0 auto';
-        element.style.boxSizing = 'border-box';
+        if (isMobile) {
+          // ── MOBILE: Dedicated Mobile PDF Download capture (1-page A4, no 2nd blank page) ──
+          const prevZoom = element.style.zoom;
+          const prevWebkitZoom = element.style.WebkitZoom;
+          const prevWidth = element.style.width;
+          const prevHeight = element.style.height;
+          const prevMaxHeight = element.style.maxHeight;
+          const prevMinHeight = element.style.minHeight;
+          const prevMargin = element.style.margin;
+          const prevBoxSizing = element.style.boxSizing;
+          const prevOverflow = element.style.overflow;
 
-        const opt = {
-          margin: 0, // 0 margin eliminates jsPDF canvas offset and 1st blank page
-          filename: filename,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            scrollY: 0,
-            scrollX: 0,
-            windowWidth: 794,
-          },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-        };
+          element.style.zoom = '1';
+          element.style.WebkitZoom = '1';
+          element.style.width = '794px';
+          element.style.height = '1118px';
+          element.style.maxHeight = '1118px';
+          element.style.minHeight = '1118px';
+          element.style.margin = '0 auto';
+          element.style.boxSizing = 'border-box';
+          element.style.overflow = 'hidden';
 
-        await window.html2pdf().set(opt).from(element).save();
+          await new Promise(resolve => setTimeout(resolve, 50));
 
-        // Restore original inline styles
-        element.style.width = prevWidth;
-        element.style.margin = prevMargin;
-        element.style.boxSizing = prevBoxSizing;
+          const mobileOpt = {
+            margin: 0,
+            filename: filename,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              logging: false,
+              scrollY: 0,
+              scrollX: 0,
+              windowWidth: 794,
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+            pagebreak: { mode: ['avoid-all'] },
+          };
+
+          await window.html2pdf().set(mobileOpt).from(element).save();
+
+          element.style.zoom = prevZoom;
+          element.style.WebkitZoom = prevWebkitZoom;
+          element.style.width = prevWidth;
+          element.style.height = prevHeight;
+          element.style.maxHeight = prevMaxHeight;
+          element.style.minHeight = prevMinHeight;
+          element.style.margin = prevMargin;
+          element.style.boxSizing = prevBoxSizing;
+          element.style.overflow = prevOverflow;
+
+        } else {
+          // ── DESKTOP: Reset zoom + A4 width (1-page A4, no 2nd blank page) ──
+          const prevZoom      = element.style.zoom;
+          const prevWebkitZ   = element.style.WebkitZoom;
+          const prevWidth     = element.style.width;
+          const prevHeight    = element.style.height;
+          const prevMaxHeight = element.style.maxHeight;
+          const prevMinHeight = element.style.minHeight;
+          const prevMargin    = element.style.margin;
+          const prevBoxSizing = element.style.boxSizing;
+          const prevOverflow  = element.style.overflow;
+
+          element.style.zoom      = '';
+          element.style.WebkitZoom = '';
+          element.style.width     = '794px';
+          element.style.height    = '1118px';
+          element.style.maxHeight = '1118px';
+          element.style.minHeight = '1118px';
+          element.style.margin    = '0 auto';
+          element.style.boxSizing = 'border-box';
+          element.style.overflow  = 'hidden';
+
+          await new Promise(resolve => setTimeout(resolve, 50));
+
+          const desktopOpt = {
+            margin: 0,
+            filename: filename,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              logging: false,
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+            pagebreak: { mode: ['avoid-all'] },
+          };
+
+          await window.html2pdf().set(desktopOpt).from(element).save();
+
+          element.style.zoom      = prevZoom;
+          element.style.WebkitZoom = prevWebkitZ;
+          element.style.width     = prevWidth;
+          element.style.height    = prevHeight;
+          element.style.maxHeight = prevMaxHeight;
+          element.style.minHeight = prevMinHeight;
+          element.style.margin    = prevMargin;
+          element.style.boxSizing = prevBoxSizing;
+          element.style.overflow  = prevOverflow;
+        }
+
       } catch (err) {
         console.warn('html2pdf direct save failed, falling back to window.print():', err);
         triggerProfessionalMarksheetPrint();
@@ -3168,11 +3447,16 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
                 padding: dynamicConfig.cardPadding,
                 backgroundColor: '#FFF2F2',
                 background: '#FFF2F2',
+                fontFamily: "'Times New Roman', Georgia, 'Merriweather', serif",
+                color: '#0f172a',
                 border: '4px double #1e3a8a',
                 outline: '2px solid #b91c1c',
                 outlineOffset: '-7px',
                 borderRadius: '14px',
                 boxShadow: '0 12px 45px rgba(30, 58, 138, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.6)',
+                display: 'flex',
+                flexDirection: 'column',
+                boxSizing: 'border-box',
                 zoom: screenScale,
                 WebkitZoom: screenScale,
               }}
@@ -3285,26 +3569,38 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
                 )}
               </div>
 
-              <div className="transcript-content-body" style={{ position: 'relative', zIndex: 1 }}>
+              <div
+                className="transcript-content-body"
+                style={{
+                  position: 'relative',
+                  zIndex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  flex: 1,
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              >
                 {/* Header Section — Centered */}
                 <div className="transcript-header-section" style={{ textAlign: 'center', marginBottom: dynamicConfig.headerMargin }}>
-                  <h1 className="transcript-school-name" style={{ margin: 0, fontSize: dynamicConfig.schoolNameFont, fontWeight: '800', color: '#1e3a8a', fontFamily: "'Times New Roman', serif", textTransform: 'uppercase', letterSpacing: '-0.3px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                  <h1 className="transcript-school-name" style={{ margin: 0, fontSize: dynamicConfig.schoolNameFont, fontWeight: '900', color: '#1e3a8a', fontFamily: "'Times New Roman', Georgia, 'Merriweather', serif", textTransform: 'uppercase', letterSpacing: '0.5px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                     {getSchoolNameByClass(selectedStudent.class, schoolProfile) || schoolProfile?.schoolName}
                   </h1>
                   {(schoolProfile?.location || window.localStorage.getItem('schoolLocation')) && (
-                    <p className="transcript-school-location" style={{ margin: '4px 0 2px', fontSize: '12px', color: '#475569', fontWeight: '600', wordBreak: 'break-word' }}>
+                    <p className="transcript-school-location" style={{ margin: '4px 0 2px', fontSize: '12px', color: '#334155', fontWeight: '600', wordBreak: 'break-word', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       📍 {schoolProfile?.location || window.localStorage.getItem('schoolLocation')}
                     </p>
                   )}
                   {(schoolProfile?.eiinNumber || window.localStorage.getItem('schoolEiinNumber')) && (
-                    <p className="transcript-school-eiin" style={{ margin: '2px 0 4px', fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>
+                    <p className="transcript-school-eiin" style={{ margin: '2px 0 4px', fontSize: '12px', fontWeight: '700', color: '#1e293b', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       EIIN: {schoolProfile?.eiinNumber || window.localStorage.getItem('schoolEiinNumber')}
                     </p>
                   )}
-                  <div className="transcript-exam-title" style={{ fontSize: '13px', fontWeight: '800', color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                  <div className="transcript-exam-title" style={{ fontSize: '14px', fontWeight: '800', color: '#1e3a8a', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px', wordBreak: 'break-word', overflowWrap: 'anywhere', fontFamily: "'Times New Roman', Georgia, serif" }}>
                     {activeExamName}
                   </div>
-                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b', fontWeight: '600' }}>
+                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#475569', fontWeight: '600', fontFamily: "'Times New Roman', Georgia, serif" }}>
                     Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </p>
                 </div>
@@ -3317,11 +3613,11 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
                   {/* Left Student Info Fields with dotted borders */}
                   <div className="transcript-student-grid">
                     {studentInfoRows.map((info, idx) => (
-                      <div key={idx} className="transcript-info-field" style={{ padding: dynamicConfig.infoPadding }}>
-                        <span className="transcript-info-label" style={{ fontSize: dynamicConfig.infoLabelFont }}>
+                      <div key={idx} className="transcript-info-field" style={{ padding: dynamicConfig.infoPadding, borderBottom: '1px dashed #94a3b8' }}>
+                        <span className="transcript-info-label" style={{ fontSize: dynamicConfig.infoLabelFont, color: '#1e3a8a', fontWeight: '700', fontFamily: "'Times New Roman', Georgia, serif", letterSpacing: '0.5px' }}>
                           {info.label}
                         </span>
-                        <span className="transcript-info-value" style={{ fontSize: dynamicConfig.infoValueFont }}>
+                        <span className="transcript-info-value" style={{ fontSize: dynamicConfig.infoValueFont, color: '#0f172a', fontWeight: '800', fontFamily: "'Times New Roman', Georgia, serif" }}>
                           {info.value}
                         </span>
                       </div>
@@ -3333,12 +3629,12 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
                     <div className="transcript-grading-header">
                       Grading System
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: dynamicConfig.gradingFont }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: dynamicConfig.gradingFont, fontFamily: "'Times New Roman', Georgia, serif" }}>
                       <thead>
-                        <tr style={{ background: '#e0ecfb', borderBottom: '1.5px solid #1e3a8a' }}>
-                          <th style={{ padding: dynamicConfig.gradingPadding, color: '#1e3a8a', fontWeight: '800', fontSize: dynamicConfig.gradingFont, borderRight: '1px solid #1e3a8a' }}>Class Interval</th>
-                          <th style={{ padding: dynamicConfig.gradingPadding, color: '#1e3a8a', fontWeight: '800', fontSize: dynamicConfig.gradingFont, borderRight: '1px solid #1e3a8a' }}>Grade</th>
-                          <th style={{ padding: dynamicConfig.gradingPadding, color: '#1e3a8a', fontWeight: '800', fontSize: dynamicConfig.gradingFont }}>G.P.</th>
+                        <tr style={{ background: '#1e3a8a', borderBottom: '1.5px solid #1e3a8a' }}>
+                          <th style={{ padding: dynamicConfig.gradingPadding, color: '#ffffff', fontWeight: '800', fontSize: dynamicConfig.gradingFont, borderRight: '1px solid #ffffff', fontFamily: "'Times New Roman', Georgia, serif" }}>Class Interval</th>
+                          <th style={{ padding: dynamicConfig.gradingPadding, color: '#ffffff', fontWeight: '800', fontSize: dynamicConfig.gradingFont, borderRight: '1px solid #ffffff', fontFamily: "'Times New Roman', Georgia, serif" }}>Grade</th>
+                          <th style={{ padding: dynamicConfig.gradingPadding, color: '#ffffff', fontWeight: '800', fontSize: dynamicConfig.gradingFont, fontFamily: "'Times New Roman', Georgia, serif" }}>G.P.</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3401,11 +3697,11 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
                   <table className="transcript-performance-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', background: '#ffffff' }}>
                     <thead>
                       <tr style={{ background: '#1e3a8a' }}>
-                        <th style={{ padding: dynamicConfig.tableHeaderPadding, color: '#ffffff', fontWeight: '800', fontSize: dynamicConfig.tableHeaderFont, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1.5px solid #1e3a8a' }}>SUBJECT</th>
-                        <th style={{ padding: dynamicConfig.tableHeaderPadding, color: '#ffffff', fontWeight: '800', fontSize: dynamicConfig.tableHeaderFont, textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center', borderBottom: '1.5px solid #1e3a8a' }}>MARKS</th>
-                        <th style={{ padding: dynamicConfig.tableHeaderPadding, color: '#ffffff', fontWeight: '800', fontSize: dynamicConfig.tableHeaderFont, textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center', borderBottom: '1.5px solid #1e3a8a' }}>HIGHEST</th>
-                        <th style={{ padding: dynamicConfig.tableHeaderPadding, color: '#ffffff', fontWeight: '800', fontSize: dynamicConfig.tableHeaderFont, textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center', borderBottom: '1.5px solid #1e3a8a' }}>GRADE</th>
-                        <th style={{ padding: dynamicConfig.tableHeaderPadding, color: '#ffffff', fontWeight: '800', fontSize: dynamicConfig.tableHeaderFont, textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center', borderBottom: '1.5px solid #1e3a8a' }}>STATUS</th>
+                        <th style={{ padding: dynamicConfig.tableHeaderPadding, color: '#ffffff', background: '#1e3a8a', fontWeight: '800', fontSize: dynamicConfig.tableHeaderFont, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1.5px solid #1e3a8a', fontFamily: "'Times New Roman', Georgia, serif" }}>SUBJECT</th>
+                        <th style={{ padding: dynamicConfig.tableHeaderPadding, color: '#ffffff', background: '#1e3a8a', fontWeight: '800', fontSize: dynamicConfig.tableHeaderFont, textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center', borderBottom: '1.5px solid #1e3a8a', fontFamily: "'Times New Roman', Georgia, serif" }}>MARKS</th>
+                        <th style={{ padding: dynamicConfig.tableHeaderPadding, color: '#ffffff', background: '#1e3a8a', fontWeight: '800', fontSize: dynamicConfig.tableHeaderFont, textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center', borderBottom: '1.5px solid #1e3a8a', fontFamily: "'Times New Roman', Georgia, serif" }}>HIGHEST</th>
+                        <th style={{ padding: dynamicConfig.tableHeaderPadding, color: '#ffffff', background: '#1e3a8a', fontWeight: '800', fontSize: dynamicConfig.tableHeaderFont, textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center', borderBottom: '1.5px solid #1e3a8a', fontFamily: "'Times New Roman', Georgia, serif" }}>GRADE</th>
+                        <th style={{ padding: dynamicConfig.tableHeaderPadding, color: '#ffffff', background: '#1e3a8a', fontWeight: '800', fontSize: dynamicConfig.tableHeaderFont, textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center', borderBottom: '1.5px solid #1e3a8a', fontFamily: "'Times New Roman', Georgia, serif" }}>STATUS</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -3418,13 +3714,13 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
 
                         return (
                           <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                            <td style={{ padding: dynamicConfig.tableCellPadding, fontSize: dynamicConfig.subjectFont, fontWeight: '700', color: '#1e293b' }}>
+                            <td style={{ padding: dynamicConfig.tableCellPadding, fontSize: dynamicConfig.subjectFont, fontWeight: '700', color: '#0f172a', fontFamily: "'Times New Roman', Georgia, serif" }}>
                               {subject.subject}
                             </td>
-                            <td style={{ padding: dynamicConfig.tableCellPadding, textAlign: 'center' }}>
+                            <td style={{ padding: dynamicConfig.tableCellPadding, textAlign: 'center', fontFamily: "'Times New Roman', Georgia, serif" }}>
                               {subject.isPending ? (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#94a3b8', fontWeight: '700' }}>
-                                  — <span style={{ fontSize: '9px', background: '#fef3c7', color: '#d97706', padding: '1px 5px', borderRadius: '4px', border: '1px solid #fcd34d', fontWeight: '800' }}>Pending</span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b', fontWeight: '700' }}>
+                                  — <span style={{ fontSize: '9.5px', background: '#fffbebe6', color: '#92400e', padding: '1px 6px', borderRadius: '4px', border: '1px solid #f59e0b', fontWeight: '800', fontFamily: "'Times New Roman', Georgia, serif" }}>Pending</span>
                                 </span>
                               ) : (
                                 <>
@@ -3529,46 +3825,46 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
                 {/* 5 Summary Metric Cards */}
                 <div className="transcript-summary-grid" style={{ marginBottom: dynamicConfig.summaryMargin }}>
                   <div className="transcript-summary-cell" style={{ padding: dynamicConfig.summaryPadding }}>
-                    <div className="transcript-summary-label">
+                    <div className="transcript-summary-label" style={{ color: '#1e3a8a', fontWeight: '700', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       PERCENTAGE
                     </div>
-                    <div className="transcript-summary-value" style={{ fontSize: dynamicConfig.summaryValueFont }}>
+                    <div className="transcript-summary-value" style={{ fontSize: dynamicConfig.summaryValueFont, color: '#0f172a', fontWeight: '800', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       {resultSummary.percentage.toFixed(1)}%
                     </div>
                   </div>
 
                   <div className="transcript-summary-cell" style={{ padding: dynamicConfig.summaryPadding }}>
-                    <div className="transcript-summary-label">
+                    <div className="transcript-summary-label" style={{ color: '#1e3a8a', fontWeight: '700', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       PROFICIENCY
                     </div>
-                    <div className="transcript-summary-value" style={{ fontSize: dynamicConfig.summaryValueFont }}>
+                    <div className="transcript-summary-value" style={{ fontSize: dynamicConfig.summaryValueFont, color: '#0f172a', fontWeight: '800', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       {!selectedStudent.isComplete ? 'Result Pending' : (resultSummary.status === 'Fail' ? 'Needs Improvement' : (resultSummary.proficiency || 'Outstanding'))}
                     </div>
                   </div>
 
                   <div className="transcript-summary-cell" style={{ padding: dynamicConfig.summaryPadding }}>
-                    <div className="transcript-summary-label">
+                    <div className="transcript-summary-label" style={{ color: '#1e3a8a', fontWeight: '700', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       GRADE (GPA)
                     </div>
-                    <div className="transcript-summary-value" style={{ fontSize: dynamicConfig.summaryValueFont }}>
+                    <div className="transcript-summary-value" style={{ fontSize: dynamicConfig.summaryValueFont, color: '#0f172a', fontWeight: '800', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       {!selectedStudent.isComplete ? 'Pending' : (resultSummary.status === 'Fail' ? 'F (0.00)' : `${resultSummary.averageGrade} (${resultSummary.gradePoint.toFixed(2)})`)}
                     </div>
                   </div>
 
                   <div className="transcript-summary-cell" style={{ padding: dynamicConfig.summaryPadding }}>
-                    <div className="transcript-summary-label">
+                    <div className="transcript-summary-label" style={{ color: '#1e3a8a', fontWeight: '700', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       CLASS RANK
                     </div>
-                    <div className="transcript-summary-value" style={{ fontSize: dynamicConfig.summaryValueFont }}>
+                    <div className="transcript-summary-value" style={{ fontSize: dynamicConfig.summaryValueFont, color: '#0f172a', fontWeight: '800', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       {!selectedStudent.isComplete ? 'N/A' : (selectedStudent.position ? `#${selectedStudent.position}` : 'N/A')}
                     </div>
                   </div>
 
                   <div className="transcript-summary-cell" style={{ padding: dynamicConfig.summaryPadding }}>
-                    <div className="transcript-summary-label">
+                    <div className="transcript-summary-label" style={{ color: '#1e3a8a', fontWeight: '700', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       TOTAL STUDENTS
                     </div>
-                    <div className="transcript-summary-value" style={{ fontSize: dynamicConfig.summaryValueFont }}>
+                    <div className="transcript-summary-value" style={{ fontSize: dynamicConfig.summaryValueFont, color: '#0f172a', fontWeight: '800', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       {rankedFilteredResults.length || '—'}
                     </div>
                   </div>
@@ -3593,7 +3889,7 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
                   <div className="transcript-signature-col" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 0 }}>
                     <div className="transcript-signature-spacer" style={{ height: dynamicConfig.signatureSpacerHeight, minHeight: dynamicConfig.signatureSpacerHeight, width: '100%' }} />
                     <div className="transcript-signature-line" style={{ width: '100%', maxWidth: '180px', borderTop: '1.5px solid #1e3a8a', marginBottom: dynamicConfig.signatureLineMargin }} />
-                    <span className="transcript-signature-label" style={{ fontSize: dynamicConfig.signatureLabelFont, fontWeight: '700', color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.3px', textAlign: 'center', wordBreak: 'break-word' }}>
+                    <span className="transcript-signature-label" style={{ fontSize: dynamicConfig.signatureLabelFont, fontWeight: '800', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.3px', textAlign: 'center', wordBreak: 'break-word', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       Class Teacher
                     </span>
                   </div>
@@ -3602,7 +3898,7 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
                   <div className="transcript-signature-col" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 0 }}>
                     <div className="transcript-signature-spacer" style={{ height: dynamicConfig.signatureSpacerHeight, minHeight: dynamicConfig.signatureSpacerHeight, width: '100%' }} />
                     <div className="transcript-signature-line" style={{ width: '100%', maxWidth: '180px', borderTop: '1.5px solid #1e3a8a', marginBottom: dynamicConfig.signatureLineMargin }} />
-                    <span className="transcript-signature-label" style={{ fontSize: dynamicConfig.signatureLabelFont, fontWeight: '700', color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.3px', textAlign: 'center', wordBreak: 'break-word' }}>
+                    <span className="transcript-signature-label" style={{ fontSize: dynamicConfig.signatureLabelFont, fontWeight: '800', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.3px', textAlign: 'center', wordBreak: 'break-word', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       Guardian
                     </span>
                   </div>
@@ -3611,7 +3907,7 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
                   <div className="transcript-signature-col" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 0 }}>
                     <div className="transcript-signature-spacer" style={{ height: dynamicConfig.signatureSpacerHeight, minHeight: dynamicConfig.signatureSpacerHeight, width: '100%' }} />
                     <div className="transcript-signature-line" style={{ width: '100%', maxWidth: '180px', borderTop: '1.5px solid #1e3a8a', marginBottom: dynamicConfig.signatureLineMargin }} />
-                    <span className="transcript-signature-label" style={{ fontSize: dynamicConfig.signatureLabelFont, fontWeight: '700', color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.3px', textAlign: 'center', wordBreak: 'break-word' }}>
+                    <span className="transcript-signature-label" style={{ fontSize: dynamicConfig.signatureLabelFont, fontWeight: '800', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.3px', textAlign: 'center', wordBreak: 'break-word', fontFamily: "'Times New Roman', Georgia, serif" }}>
                       Head Teacher
                     </span>
                   </div>
@@ -3709,7 +4005,7 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
     setExamSessions((prev) => {
       const next = [...prev.filter((e) => (e.examId || e.id || e.key) !== newExam.examId), newExam];
       saveStoredExamSessions(next, activeSchoolId);
-      saveTeacherPanelData({ examSessions: next }, activeSchoolId).catch(() => {});
+      saveTeacherPanelData({ examSessions: next }, activeSchoolId).catch(() => { });
       return next;
     });
 
@@ -4343,24 +4639,26 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
               type="button"
               className="mark-sheet-desktop-only-btn"
               onClick={handlePrintMarkSheet}
+              disabled={isPrintingPdf}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: 'rgba(255, 255, 255, 0.18)',
+                background: isPrintingPdf ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.18)',
                 color: '#ffffff',
                 border: '1px solid rgba(255, 255, 255, 0.35)',
                 borderRadius: '10px',
                 padding: '9px 16px',
-                cursor: 'pointer',
+                cursor: isPrintingPdf ? 'wait' : 'pointer',
                 fontWeight: '700',
                 fontSize: '13.5px',
                 transition: 'all 0.2s ease',
+                opacity: isPrintingPdf ? 0.8 : 1,
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.28)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.18)')}
+              onMouseEnter={(e) => { if (!isPrintingPdf) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.28)'; }}
+              onMouseLeave={(e) => { if (!isPrintingPdf) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.18)'; }}
             >
-              🖨️ Print Marksheet
+              {isPrintingPdf ? '⏳ Preparing PDF...' : '🖨️ Print Marksheet'}
             </button>
           </div>
         </div>

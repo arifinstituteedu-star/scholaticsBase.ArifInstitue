@@ -2,6 +2,8 @@
   "name": "scholasticbase-school-management",
   "private": true,
   "version": "1.0.0",
+  "description": "ScholasticBase School Management System Desktop Application",
+  "author": "ScholasticBase",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -37,6 +39,7 @@
     "electron": "^43.2.0",
     "electron-builder": "^26.15.3",
     "electron-packager": "^17.1.2",
+    "png-to-ico": "^3.0.2",
     "postcss": "^8.5.23",
     "tailwindcss": "^3.4.19",
     "vite": "^5.4.1"

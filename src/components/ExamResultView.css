@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;500;600;700;800;900&family=Hind+Siliguri:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Merriweather:ital,wght@0,400;0,700;0,900;1,400&family=Dancing+Script:wght@700&family=Inter:wght@400;500;600;700;800;900&family=Hind+Siliguri:wght@400;500;600;700&display=swap');
 
 /* ─────────────────────────────────────────────────────────────
    EXAM RESULTS VIEW — MODERN DESIGN SYSTEM & VARIABLES
@@ -25,6 +25,7 @@
   --erv-radius-md: 12px;
   --erv-radius-lg: 18px;
   --erv-font: 'Inter', 'Hind Siliguri', system-ui, -apple-system, sans-serif;
+  --erv-marksheet-font: 'Times New Roman', Georgia, 'Merriweather', serif;
 }
 
 .results-list-mode,
@@ -621,8 +622,8 @@
   max-width: 850px;
   margin: 20px auto;
   box-shadow: 0 12px 45px rgba(30, 58, 138, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
-  font-family: 'Inter', system-ui, sans-serif;
-  color: #1e293b;
+  font-family: var(--erv-marksheet-font, 'Times New Roman', Georgia, serif);
+  color: #0f172a;
   box-sizing: border-box;
   position: relative;
 }
@@ -695,17 +696,19 @@
 }
 
 .transcript-info-label {
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 500;
+  font-size: 12px;
+  color: #1e3a8a;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
+  font-family: 'Times New Roman', Georgia, serif;
 }
 
 .transcript-info-value {
   font-size: 13px;
   color: #0f172a;
-  font-weight: 700;
+  font-weight: 800;
+  font-family: 'Times New Roman', Georgia, serif;
 }
 
 .transcript-photo-box {
@@ -763,14 +766,15 @@
 }
 
 .transcript-performance-table th {
-  background: #dbeafe;
-  color: #1e3a8a;
-  font-weight: 700;
+  background: #1e3a8a !important;
+  color: #ffffff !important;
+  font-weight: 800;
   font-size: 12px;
-  padding: 12px 16px;
-  border: 1px solid #bfdbfe;
+  padding: 10px 14px;
+  border: 1px solid #1e3a8a !important;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-family: 'Times New Roman', Georgia, serif;
 }
 
 .transcript-performance-table td {
@@ -1508,6 +1512,7 @@
     border-radius: 12px !important;
     background-color: #FFF2F2 !important;
     background: #FFF2F2 !important;
+    font-family: 'Times New Roman', Georgia, serif !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     box-shadow: none !important;
@@ -1554,8 +1559,9 @@
   }
 
   .transcript-info-label {
-    color: #64748b !important;
+    color: #1e3a8a !important;
     font-weight: 700 !important;
+    font-family: 'Times New Roman', Georgia, serif !important;
   }
 
   .transcript-info-value {
@@ -1814,22 +1820,24 @@ body.print-measuring-mode .transcript-summary-grid {
 }
 
 .transcript-info-label {
-  font-size: 11px;
-  color: #64748b;
+  font-size: 11.5px;
+  color: #1e3a8a;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
   flex-shrink: 0;
+  font-family: 'Times New Roman', Georgia, serif;
 }
 
 .transcript-info-value {
-  font-size: 12.5px;
+  font-size: 13px;
   color: #0f172a;
   font-weight: 800;
   text-align: right;
   word-break: break-word;
   overflow-wrap: anywhere;
+  font-family: 'Times New Roman', Georgia, serif;
 }
 
 .transcript-grading-box {
@@ -1888,11 +1896,12 @@ body.print-measuring-mode .transcript-summary-grid {
 .transcript-summary-label {
   font-size: 10px;
   font-weight: 700;
-  color: #64748b;
+  color: #1e3a8a;
   text-transform: uppercase;
   margin-bottom: 4px;
   letter-spacing: 0.5px;
   white-space: nowrap;
+  font-family: 'Times New Roman', Georgia, serif;
 }
 
 .transcript-summary-value {
@@ -1900,6 +1909,7 @@ body.print-measuring-mode .transcript-summary-grid {
   font-weight: 800;
   color: #0f172a;
   word-break: break-word;
+  font-family: 'Times New Roman', Georgia, serif;
 }
 
 /* Tablet & Medium Screens (<= 900px) */

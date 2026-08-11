@@ -26,4 +26,14 @@ export default defineConfig({
       overlay: true,
     },
   },
+  // Exclude release/build output folders from file watching to avoid EBUSY
+  // errors on locked .exe files (Windows OS holds an exclusive lock on running executables)
+  watch: {
+    ignored: [
+      '**/release-exe/**',
+      '**/release/**',
+      '**/dist/**',
+      '**/node_modules/**',
+    ],
+  },
 });
