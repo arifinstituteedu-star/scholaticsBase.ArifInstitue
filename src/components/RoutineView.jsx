@@ -688,7 +688,7 @@ export const ClassRoutineManager = ({
                 <div style={{ fontSize: 26, marginBottom: 10 }}>📚</div>
                 <h4 className="routine-display" style={{ fontWeight: 700, color: TOKENS.ink, fontSize: 18, margin: 0 }}>{cls.name}</h4>
                 <p style={{ fontSize: 13.5, color: TOKENS.muted, marginTop: 4 }}>
-                  {cls.groups.length} টি গ্রুপ: {cls.groups.map(g => g.name).join(', ')}
+                  {cls.groups.length} টি গ্রুপ: {cls.groups.map(g => (typeof g === 'object' && g !== null ? g.name || g.id || '' : String(g || ''))).filter(Boolean).join(', ')}
                 </p>
                 <button style={{ marginTop: 16, fontSize: 12, fontWeight: 700, background: '#EAF7EF', color: TOKENS.forestDeep, padding: '7px 14px', borderRadius: 999, border: '1px solid #BFE4CE' }}>
                   গ্রুপ দেখুন ➔

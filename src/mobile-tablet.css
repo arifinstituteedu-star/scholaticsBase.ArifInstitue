@@ -2870,3 +2870,172 @@ button,
     white-space: nowrap !important;
   }
 }
+
+/* ─────────────────────────────────────
+   25. GROUP ROSTER ULTRA-MOBILE RESPONSIVE SYSTEM
+   ───────────────────────────────────── */
+@media screen and (max-width: 640px) {
+  .tp-kpi-bar-wrapper {
+    margin: 0 10px 12px !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .tp-kpi-card-item {
+    padding: 10px 8px !important;
+    border-radius: 12px !important;
+    flex-direction: column !important;
+    text-align: center !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .tp-kpi-icon-box {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 16px !important;
+    border-radius: 8px !important;
+  }
+
+  .tp-kpi-text-label {
+    font-size: 9.5px !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .tp-kpi-text-val {
+    font-size: 16px !important;
+    margin-top: 1px !important;
+  }
+
+  .tp-kpi-text-badge {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+    margin-top: 2px !important;
+  }
+
+  .tp-group-roster-container {
+    margin: 0 10px 16px !important;
+    padding: 14px 12px !important;
+    border-radius: 14px !important;
+  }
+}
+
+/* ─────────────────────────────────────
+   26. FLOATING DELETE BAR RESPONSIVE SYSTEM
+   ───────────────────────────────────── */
+.tp-floating-delete-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  width: calc(100% - 32px);
+  max-width: 540px;
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 12px 18px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #334155;
+  box-sizing: border-box;
+}
+
+.tp-floating-delete-bar-left,
+.tp-floating-delete-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tp-floating-delete-bar-text {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tp-floating-delete-bar-btn {
+  background: #334155;
+  color: #e2e8f0;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tp-floating-delete-cancel-btn {
+  background: transparent;
+  color: #94a3b8;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tp-floating-delete-exec-btn {
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  padding: 7px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);
+}
+
+.tp-floating-delete-exec-btn:disabled {
+  background: #475569;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+@media screen and (max-width: 540px) {
+  .tp-floating-delete-bar {
+    bottom: 12px !important;
+    width: calc(100% - 16px) !important;
+    padding: 10px 10px !important;
+    border-radius: 14px !important;
+    gap: 6px !important;
+  }
+
+  .tp-floating-delete-bar-left,
+  .tp-floating-delete-bar-right {
+    gap: 6px !important;
+  }
+
+  .tp-floating-delete-bar-text {
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+
+  .tp-floating-delete-bar-btn {
+    padding: 4px 8px !important;
+    font-size: 10.5px !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
+  }
+
+  .tp-floating-delete-cancel-btn {
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+
+  .tp-floating-delete-exec-btn {
+    padding: 6px 10px !important;
+    font-size: 11.5px !important;
+    border-radius: 8px !important;
+    white-space: nowrap !important;
+  }
+}

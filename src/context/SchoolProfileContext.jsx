@@ -237,24 +237,22 @@ export function SchoolProfileProvider({ children }) {
     };
 
     const setSchoolProfile = (updates) => {
-        if (!user || (user.role !== 'admin' && !user.isSuperAdmin)) {
-            console.warn('Unauthorized: Changing school profile configurations is restricted to the admin role.');
-            return;
-        }
         setSchoolProfileState((current) => {
             const nextProfile = { ...current, ...updates };
             persistProfile(nextProfile);
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('schoolDataUpdate', { detail: nextProfile }));
+            }
             return nextProfile;
         });
     };
 
     const resetSchoolProfile = () => {
-        if (!user || (user.role !== 'admin' && !user.isSuperAdmin)) {
-            console.warn('Unauthorized: Resetting school profile configurations is restricted to the admin role.');
-            return;
-        }
         setSchoolProfileState(defaultSchoolProfile);
         persistProfile(defaultSchoolProfile);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('schoolDataUpdate', { detail: defaultSchoolProfile }));
+        }
     };
 
     const value = useMemo(

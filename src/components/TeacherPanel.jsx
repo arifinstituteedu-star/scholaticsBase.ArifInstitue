@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSchoolProfile } from '../context/SchoolProfileContext.jsx';
+import { useLanguage } from '../context/LanguageContext.jsx';
 import schoolSilhouette from '../school_silhouette.png';
 import ExamResultView from './ExamResultView.jsx';
 import ResultEntry from './ResultEntry.jsx';
@@ -552,135 +553,159 @@ function AddStudentModal({ onClose, onAdd, classColor, existingRolls = [], group
 
   return (
     <div className="tp-modal-overlay" onClick={onClose}>
-      <div className="tp-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="tp-modal-header" style={{ borderBottomColor: classColor }}>
-          <h3 className="tp-modal-title">➕ Add New Student</h3>
+      <div className="tp-modal" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', width: '90%', maxWidth: '520px', borderRadius: '16px', border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)', overflow: 'hidden' }}>
+        <div className="tp-modal-header" style={{ borderBottomColor: classColor || '#4f46e5', flexShrink: 0, padding: '16px 20px' }}>
+          <h3 className="tp-modal-title" style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>➕ Add New Student</h3>
           <button className="tp-modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
 
-        <form className="tp-modal-body" onSubmit={handleSubmit}>
-          {/* Photo Upload Section (300x300px) */}
-          <div style={{ textAlign: 'center', marginBottom: 16 }}>
-            <label htmlFor="tp-student-add-photo" style={{ cursor: 'pointer', display: 'inline-block' }}>
-              {form.profilePic ? (
-                <div style={{ position: 'relative', width: 100, height: 100, borderRadius: 16, overflow: 'hidden', margin: '0 auto', border: `2px solid ${classColor}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                  <img src={form.profilePic} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div style={{ position: 'absolute', bottom: 0, inset: 'auto 0 0 0', background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, fontWeight: 700, textAlign: 'center', padding: '3px 0' }}>
-                    300 × 300 px
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div className="tp-modal-body" style={{ flex: '1 1 auto', overflowY: 'auto', padding: '20px' }}>
+            {/* Photo Upload Section (300x300px) */}
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <label htmlFor="tp-student-add-photo" style={{ cursor: 'pointer', display: 'inline-block' }}>
+                {form.profilePic ? (
+                  <div style={{ position: 'relative', width: 90, height: 90, borderRadius: 14, overflow: 'hidden', margin: '0 auto', border: `2px solid ${classColor || '#4f46e5'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                    <img src={form.profilePic} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', bottom: 0, inset: 'auto 0 0 0', background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 9, fontWeight: 700, textAlign: 'center', padding: '2px 0' }}>
+                      300 × 300 px
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div style={{
-                  width: 100,
-                  height: 100,
-                  borderRadius: 16,
-                  border: `2px dashed ${classColor}`,
-                  background: '#f8fafc',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto',
-                  transition: 'all 0.2s'
-                }}>
-                  <span style={{ fontSize: 26, marginBottom: 2 }}>📸</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#334155' }}>Upload Photo</span>
-                  <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>300 × 300 px</span>
-                </div>
+                ) : (
+                  <div style={{
+                    width: 90,
+                    height: 90,
+                    borderRadius: 14,
+                    border: `2px dashed ${classColor || '#4f46e5'}`,
+                    background: '#f8fafc',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto',
+                    transition: 'all 0.2s'
+                  }}>
+                    <span style={{ fontSize: 24, marginBottom: 2 }}>📸</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: '#334155' }}>Upload Photo</span>
+                    <span style={{ fontSize: 8.5, color: '#64748b', fontWeight: 600 }}>300 × 300 px</span>
+                  </div>
+                )}
+              </label>
+              <input
+                id="tp-student-add-photo"
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                style={{ display: 'none' }}
+              />
+              {form.profilePic && (
+                <button
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, profilePic: '' }))}
+                  style={{ display: 'block', margin: '6px auto 0', background: 'none', border: 'none', color: '#ef4444', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Remove Photo
+                </button>
               )}
-            </label>
-            <input
-              id="tp-student-add-photo"
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoUpload}
-              style={{ display: 'none' }}
-            />
-            {form.profilePic && (
-              <button
-                type="button"
-                onClick={() => setForm(prev => ({ ...prev, profilePic: '' }))}
-                style={{ display: 'block', margin: '6px auto 0', background: 'none', border: 'none', color: '#ef4444', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
-              >
-                Remove Photo
-              </button>
-            )}
+            </div>
+
+            <div className="tp-form-grid">
+              <div className="tp-form-group tp-form-full">
+                <label className="tp-form-label">Student Name *</label>
+                <input
+                  className={`tp-form-input${error ? ' tp-input-error' : ''}`}
+                  type="text"
+                  placeholder="e.g. Ayesha Rahman"
+                  value={form.name}
+                  onChange={(e) => { setForm(prev => ({ ...prev, name: e.target.value })); if (error) setError(''); }}
+                  autoFocus
+                />
+              </div>
+
+              <div className="tp-form-group">
+                <label className="tp-form-label">Roll Number *</label>
+                <input
+                  className={`tp-form-input${error ? ' tp-input-error' : ''}`}
+                  type="text"
+                  placeholder="e.g. 01"
+                  value={form.roll}
+                  onChange={(e) => { setForm(prev => ({ ...prev, roll: e.target.value })); if (error) setError(''); }}
+                />
+              </div>
+
+              <div className="tp-form-group">
+                <label className="tp-form-label">Phone</label>
+                <input
+                  className="tp-form-input"
+                  type="text"
+                  placeholder="e.g. +88017..."
+                  value={form.phone}
+                  onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
+                />
+              </div>
+
+              <div className="tp-form-group">
+                <label className="tp-form-label">Father's Name</label>
+                <input
+                  className="tp-form-input"
+                  type="text"
+                  placeholder="e.g. Md. Rahman"
+                  value={form.fatherName}
+                  onChange={(e) => setForm(prev => ({ ...prev, fatherName: e.target.value }))}
+                />
+              </div>
+
+              <div className="tp-form-group">
+                <label className="tp-form-label">Mother's Name</label>
+                <input
+                  className="tp-form-input"
+                  type="text"
+                  placeholder="e.g. Salma Begum"
+                  value={form.motherName}
+                  onChange={(e) => setForm(prev => ({ ...prev, motherName: e.target.value }))}
+                />
+              </div>
+
+              <div className="tp-form-group tp-form-full">
+                <label className="tp-form-label">Date of Birth (Birthday)</label>
+                <input
+                  className="tp-form-input"
+                  type="date"
+                  value={form.dob}
+                  onChange={(e) => setForm(prev => ({ ...prev, dob: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            {error && <div className="tp-form-error" style={{ marginTop: 10, color: '#ef4444', fontWeight: 700, fontSize: 13 }}>⚠️ {error}</div>}
           </div>
 
-          <div className="tp-form-grid">
-            <div className="tp-form-group tp-form-full">
-              <label className="tp-form-label">Student Name *</label>
-              <input
-                className={`tp-form-input${error ? ' tp-input-error' : ''}`}
-                type="text"
-                placeholder="e.g. Ayesha Rahman"
-                value={form.name}
-                onChange={(e) => { setForm(prev => ({ ...prev, name: e.target.value })); if (error) setError(''); }}
-                autoFocus
-              />
-            </div>
-
-            <div className="tp-form-group">
-              <label className="tp-form-label">Roll Number *</label>
-              <input
-                className={`tp-form-input${error ? ' tp-input-error' : ''}`}
-                type="text"
-                placeholder="e.g. 01"
-                value={form.roll}
-                onChange={(e) => { setForm(prev => ({ ...prev, roll: e.target.value })); if (error) setError(''); }}
-              />
-            </div>
-
-            <div className="tp-form-group">
-              <label className="tp-form-label">Phone</label>
-              <input
-                className="tp-form-input"
-                type="text"
-                placeholder="e.g. +88017..."
-                value={form.phone}
-                onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
-              />
-            </div>
-
-            <div className="tp-form-group">
-              <label className="tp-form-label">Father's Name</label>
-              <input
-                className="tp-form-input"
-                type="text"
-                placeholder="e.g. Md. Rahman"
-                value={form.fatherName}
-                onChange={(e) => setForm(prev => ({ ...prev, fatherName: e.target.value }))}
-              />
-            </div>
-
-            <div className="tp-form-group">
-              <label className="tp-form-label">Mother's Name</label>
-              <input
-                className="tp-form-input"
-                type="text"
-                placeholder="e.g. Salma Begum"
-                value={form.motherName}
-                onChange={(e) => setForm(prev => ({ ...prev, motherName: e.target.value }))}
-              />
-            </div>
-
-            <div className="tp-form-group tp-form-full">
-              <label className="tp-form-label">Date of Birth (Birthday)</label>
-              <input
-                className="tp-form-input"
-                type="date"
-                value={form.dob}
-                onChange={(e) => setForm(prev => ({ ...prev, dob: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          {error && <div className="tp-form-error" style={{ marginTop: 8 }}>{error}</div>}
-
-          <div className="tp-modal-footer">
-            <button type="button" className="tp-modal-cancel-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="tp-modal-submit-btn" style={{ background: classColor }} disabled={isProcessingPhoto}>
-              {isProcessingPhoto ? 'Processing Photo...' : 'Add Student'}
+          <div className="tp-modal-footer" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '14px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
+            <button type="button" className="tp-modal-cancel-btn" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="tp-modal-submit-btn"
+              style={{
+                background: `linear-gradient(135deg, ${classColor || '#4f46e5'} 0%, #3b82f6 100%)`,
+                color: '#ffffff',
+                fontWeight: 700,
+                padding: '9px 20px',
+                borderRadius: 10,
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.35)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+              disabled={isProcessingPhoto}
+            >
+              {isProcessingPhoto ? (
+                <>
+                  <span style={{ display: 'inline-block', width: '13px', height: '13px', border: '2px solid #ffffff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  <span>Processing...</span>
+                </>
+              ) : '✨ Save Student'}
             </button>
           </div>
         </form>
@@ -691,55 +716,86 @@ function AddStudentModal({ onClose, onAdd, classColor, existingRolls = [], group
 
 /* ──────────────────────────────────────────
    AddGroupModal
+/* ──────────────────────────────────────────
+   AddGroupModal – premium modal for adding groups
    ────────────────────────────────────────── */
-function AddGroupModal({ onClose, onAdd, classColor }) {
+function AddGroupModal({ onClose, onAdd, classColor, className = '' }) {
   const [groupName, setGroupName] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!groupName.trim()) {
-      setError('Group name is required');
+    const trimmed = groupName.trim();
+    if (!trimmed) {
+      setError('Group or section name is required.');
       return;
     }
-    onAdd(groupName.trim());
+    setIsSubmitting(true);
+    setError('');
+    try {
+      await onAdd(trimmed);
+    } catch (err) {
+      console.error('AddGroupModal submission error:', err);
+      setError(err.message || 'Failed to add group. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="tp-modal-overlay" onClick={onClose}>
-      <div className="tp-modal" onClick={e => e.stopPropagation()}>
-        <div className="tp-modal-header" style={{ borderBottomColor: classColor }}>
-          <h3 className="tp-modal-title">👥 Add Custom Group</h3>
-          <button className="tp-modal-close" onClick={onClose} aria-label="Close">✕</button>
-        </div>
-
-        <form className="tp-modal-body" onSubmit={handleSubmit}>
-          <div className="tp-form-grid" style={{ gridTemplateColumns: '1fr' }}>
-            <div className="tp-form-group tp-form-full">
-              <label className="tp-form-label">Group Name *</label>
-              <input
-                className={`tp-form-input${error ? ' tp-input-error' : ''}`}
-                type="text"
-                placeholder="e.g. Group D, Biology Team"
-                value={groupName}
-                onChange={e => {
-                  setGroupName(e.target.value);
-                  if (error) setError('');
-                }}
-                autoFocus
-              />
-              {error && <span className="tp-form-error">{error}</span>}
+    <div className="tp-modal-overlay" onClick={isSubmitting ? undefined : onClose}>
+      <div className="tp-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', borderRadius: '16px', border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+        <div className="tp-modal-header" style={{ borderBottomColor: classColor || '#4f46e5', padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: 36, height: 36, borderRadius: '10px', background: `${classColor || '#4f46e5'}15`, color: classColor || '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700 }}>
+              👥
+            </div>
+            <div>
+              <h3 className="tp-modal-title" style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Add New Group</h3>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>{className ? `Create group for ${className}` : 'Create a new group or section'}</p>
             </div>
           </div>
+          <button className="tp-modal-close" onClick={onClose} disabled={isSubmitting} aria-label="Close">✕</button>
+        </div>
 
-          <div className="tp-modal-footer">
-            <button type="button" className="tp-modal-cancel-btn" onClick={onClose}>Cancel</button>
+        <form className="tp-modal-body" onSubmit={handleSubmit} style={{ padding: '20px' }}>
+          <div className="tp-form-group tp-form-full" style={{ marginBottom: '16px' }}>
+            <label className="tp-form-label" style={{ fontWeight: 600, fontSize: 13, color: '#334155', marginBottom: 6, display: 'block' }}>
+              Group / Section Name *
+            </label>
+            <input
+              className={`tp-form-input${error ? ' tp-input-error' : ''}`}
+              type="text"
+              placeholder="e.g. Group A, Section 1, Science, Commerce"
+              value={groupName}
+              onChange={(e) => {
+                setGroupName(e.target.value);
+                if (error) setError('');
+              }}
+              disabled={isSubmitting}
+              autoFocus
+              style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: 14 }}
+            />
+            {error && <span className="tp-form-error" style={{ color: '#ef4444', fontSize: '12.5px', marginTop: '6px', display: 'block', fontWeight: 600 }}>{error}</span>}
+          </div>
+
+          <div className="tp-modal-footer" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 12 }}>
+            <button type="button" className="tp-modal-cancel-btn" onClick={onClose} disabled={isSubmitting}>
+              Cancel
+            </button>
             <button
               type="submit"
               className="tp-modal-submit-btn"
-              style={{ background: classColor }}
+              style={{ background: `linear-gradient(135deg, ${classColor || '#4f46e5'} 0%, #3b82f6 100%)`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: isSubmitting ? 0.75 : 1, padding: '9px 18px', borderRadius: '10px', fontWeight: 700 }}
+              disabled={isSubmitting}
             >
-              Add Group
+              {isSubmitting ? (
+                <>
+                  <span style={{ display: 'inline-block', width: '13px', height: '13px', border: '2px solid #ffffff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
+                  <span>Creating...</span>
+                </>
+              ) : '✨ Create Group'}
             </button>
           </div>
         </form>
@@ -749,7 +805,7 @@ function AddGroupModal({ onClose, onAdd, classColor }) {
 }
 
 /* ──────────────────────────────────────────
-   GroupRoster – shows groups of one class
+   GroupRoster – ultra-modern group overview
    ────────────────────────────────────────── */
 function GroupRoster({ classData, classIdx, onBack, onSelectGroup, onAddGroup, onDeleteGroups, visibleGroups = null, isReadOnly = false, canModifyClass = true }) {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -757,7 +813,9 @@ function GroupRoster({ classData, classIdx, onBack, onSelectGroup, onAddGroup, o
   const [selectedGroups, setSelectedGroups] = useState(new Set());
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const classColor = CLASS_COLORS[(classData.classNum - 1) % CLASS_COLORS.length];
+  const getGroupNameStr = (g) => typeof g === 'object' && g !== null ? (g.name || g.id || 'Group') : String(g || '');
+
+  const classColor = CLASS_COLORS[(classData.classNum - 1) % CLASS_COLORS.length] || '#4f46e5';
   const canManage = Boolean(canModifyClass);
   const groupsForView = (Array.isArray(visibleGroups) && visibleGroups.length > 0
     ? visibleGroups
@@ -765,15 +823,20 @@ function GroupRoster({ classData, classIdx, onBack, onSelectGroup, onAddGroup, o
       ? classData.groups
       : []);
 
+  const totalEnrolledStudents = useMemo(() => {
+    return (classData.students || []).length;
+  }, [classData.students]);
+
   const toggleSelect = (groupName) => {
+    const groupNameStr = getGroupNameStr(groupName);
     setSelectedGroups(prev => {
       const next = new Set(prev);
-      next.has(groupName) ? next.delete(groupName) : next.add(groupName);
+      next.has(groupNameStr) ? next.delete(groupNameStr) : next.add(groupNameStr);
       return next;
     });
   };
 
-  const selectAll = () => setSelectedGroups(new Set(groupsForView));
+  const selectAll = () => setSelectedGroups(new Set(groupsForView.map(getGroupNameStr)));
   const clearAll = () => setSelectedGroups(new Set());
 
   const handleDeleteConfirm = () => {
@@ -781,6 +844,11 @@ function GroupRoster({ classData, classIdx, onBack, onSelectGroup, onAddGroup, o
     setSelectedGroups(new Set());
     setDeleteMode(false);
     setShowConfirm(false);
+  };
+
+  const handleSingleDelete = (groupNameStr, e) => {
+    e.stopPropagation();
+    onDeleteGroups?.(classIdx, [groupNameStr]);
   };
 
   const handleAddGroup = (groupName) => {
@@ -795,27 +863,31 @@ function GroupRoster({ classData, classIdx, onBack, onSelectGroup, onAddGroup, o
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddGroup}
           classColor={classColor}
+          className={classData?.className}
         />
       )}
 
       {!isReadOnly && showConfirm && (
         <div className="tp-modal-overlay" onClick={() => setShowConfirm(false)}>
-          <div className="tp-confirm-modal" onClick={e => e.stopPropagation()}>
-            <div className="tp-confirm-icon">⚠️</div>
-            <h3 className="tp-confirm-title">
+          <div className="tp-confirm-modal" onClick={e => e.stopPropagation()} style={{ borderRadius: '16px', padding: '24px' }}>
+            <div className="tp-confirm-icon" style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+            <h3 className="tp-confirm-title" style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
               Delete {selectedGroups.size} Group{selectedGroups.size !== 1 ? 's' : ''}?
             </h3>
-            <p className="tp-confirm-sub">
-              This action cannot be undone. Selected groups and their students will be removed.
+            <p className="tp-confirm-sub" style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>
+              Selected groups and their enrolled student records will be permanently removed.
             </p>
-            <div className="tp-confirm-actions">
+            <div className="tp-confirm-actions" style={{ marginTop: 20 }}>
               <button className="tp-modal-cancel-btn" onClick={() => setShowConfirm(false)}>Cancel</button>
-              <button className="tp-delete-exec-btn" onClick={handleDeleteConfirm}>Yes, Delete</button>
+              <button className="tp-delete-exec-btn" style={{ background: '#ef4444', color: '#fff', fontWeight: 700 }} onClick={handleDeleteConfirm}>
+                Yes, Delete Groups
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Header Section */}
       <div className="tp-section-header">
         <button className="tp-back-btn" onClick={onBack} title="Back to Classes" aria-label="Back to Classes">
           <ChevronLeft />
@@ -826,89 +898,269 @@ function GroupRoster({ classData, classIdx, onBack, onSelectGroup, onAddGroup, o
             <span className="tp-crumb-separator">/</span>
             <span className="tp-crumb-current">{classData?.className}</span>
           </div>
-          <h2 className="tp-section-title">{classData?.className} — Groups</h2>
+          <h2 className="tp-section-title">{classData?.className} — Groups Portal</h2>
         </div>
       </div>
 
-      <div className="tp-detail-card" style={{ margin: '0 20px 16px', padding: '16px 18px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-          <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1f2937' }}>🧑‍🏫 Manage groups</p>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#475569', lineHeight: 1.4 }}>Select a group to view its students and manage details.</p>
+      {/* KPI Stats Bar */}
+      <div className="tp-kpi-bar-wrapper" style={{ margin: '0 20px 16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+        <div className="tp-kpi-card-item" style={{ background: '#ffffff', borderRadius: 14, padding: '14px 18px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="tp-kpi-icon-box" style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 6px -1px rgba(99,102,241,0.25)', flexShrink: 0 }}>
+            🗂️
           </div>
+          <div>
+            <p className="tp-kpi-text-label" style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em' }}>Total Groups</p>
+            <p className="tp-kpi-text-val" style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{groupsForView.length}</p>
+          </div>
+        </div>
+
+        <div className="tp-kpi-card-item" style={{ background: '#ffffff', borderRadius: 14, padding: '14px 18px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="tp-kpi-icon-box" style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 6px -1px rgba(16,185,129,0.25)', flexShrink: 0 }}>
+            🎓
+          </div>
+          <div>
+            <p className="tp-kpi-text-label" style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em' }}>Enrolled Students</p>
+            <p className="tp-kpi-text-val" style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{totalEnrolledStudents}</p>
+          </div>
+        </div>
+
+        <div className="tp-kpi-card-item" style={{ background: '#ffffff', borderRadius: 14, padding: '14px 18px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="tp-kpi-icon-box" style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 6px -1px rgba(59,130,246,0.25)', flexShrink: 0 }}>
+            ⚡
+          </div>
+          <div>
+            <p className="tp-kpi-text-label" style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em' }}>Management Status</p>
+            <span className="tp-kpi-text-badge" style={{ display: 'inline-block', marginTop: 4, padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, background: isReadOnly ? '#fef3c7' : '#dcfce7', color: isReadOnly ? '#d97706' : '#15803d' }}>
+              {isReadOnly ? '🔒 Read Only' : '🟢 Live Admin Access'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Detail Container Card */}
+      <div className="tp-detail-card tp-group-roster-container" style={{ margin: '0 20px 24px', padding: '20px 22px', borderRadius: 16, background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)' }}>
+        
+        {/* Controls Toolbar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>🧑‍🏫 Manage Groups & Sections</h3>
+            <p style={{ margin: '2px 0 0', fontSize: 12.5, color: '#64748b' }}>Select a group card to view its roster & details</p>
+          </div>
+
           {!isReadOnly && canManage && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
-              <button className="tp-add-student-btn" style={{ background: classColor, whiteSpace: 'nowrap' }} onClick={() => setShowAddModal(true)}>
-                + Add Group
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                style={{
+                  background: `linear-gradient(135deg, ${classColor} 0%, #3b82f6 100%)`,
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '9px 18px',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 13.5,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 10px -2px rgba(59, 130, 246, 0.35)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>+</span>
+                <span>Add Group</span>
               </button>
-              <button className="tp-add-student-btn" style={{ background: '#64748b', whiteSpace: 'nowrap' }} onClick={() => setDeleteMode(v => !v)}>
-                {deleteMode ? 'Cancel' : 'Delete Groups'}
+              
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteMode(v => !v);
+                  if (deleteMode) setSelectedGroups(new Set());
+                }}
+                style={{
+                  background: deleteMode ? '#ef4444' : '#f1f5f9',
+                  color: deleteMode ? '#ffffff' : '#475569',
+                  border: deleteMode ? 'none' : '1px solid #cbd5e1',
+                  padding: '9px 16px',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 13.5,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>{deleteMode ? '✕ Cancel' : '🗑️ Delete Groups'}</span>
+                {deleteMode && selectedGroups.size > 0 && (
+                  <span style={{ background: '#ffffff', color: '#ef4444', padding: '1px 6px', borderRadius: 999, fontSize: 11, fontWeight: 800 }}>
+                    {selectedGroups.size}
+                  </span>
+                )}
               </button>
             </div>
           )}
         </div>
 
+        {/* Group Cards Grid */}
         {groupsForView.length === 0 ? (
-          <div className="tp-roster-empty">
-            <span>🗂️</span>
-            <p>No groups are available for this class yet.</p>
+          <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: 14, border: '1.5px dashed #cbd5e1' }}>
+            <div style={{ fontSize: 42, marginBottom: 10 }}>📂</div>
+            <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#334155' }}>
+              No groups created yet
+            </h4>
+            <p style={{ margin: '6px 0 16px', fontSize: 13, color: '#64748b' }}>
+              Create the first group or section for {classData?.className || 'this class'}.
+            </p>
+            {!isReadOnly && canManage && (
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                style={{ background: classColor, color: '#fff', border: 'none', padding: '8px 18px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+              >
+                + Add First Group
+              </button>
+            )}
           </div>
         ) : (
-          <div className="tp-student-roster-grid">
-            {groupsForView.map((groupName, index) => {
-              const selected = selectedGroups.has(groupName);
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+            {groupsForView.map((groupItem, index) => {
+              const groupNameStr = getGroupNameStr(groupItem);
+              const selected = selectedGroups.has(groupNameStr);
+              const studentCount = (classData.students || []).filter((student) => {
+                const sGrp = typeof student.group === 'object' && student.group !== null
+                  ? (student.group.name || student.group.id)
+                  : student.group;
+                return String(sGrp || '').trim().toLowerCase() === groupNameStr.trim().toLowerCase();
+              }).length;
+
               return (
-                <button
-                  key={`${groupName}-${index}`}
-                  type="button"
-                  className={`tp-student-roster-card${deleteMode && selected ? ' tp-card-selected' : ''}`}
+                <div
+                  key={`${groupNameStr}-${index}`}
                   onClick={() => {
                     if (deleteMode) {
-                      toggleSelect(groupName);
+                      toggleSelect(groupNameStr);
                       return;
                     }
                     onSelectGroup?.(index);
                   }}
-                  style={{ textAlign: 'left', padding: 16, cursor: 'pointer' }}
+                  style={{
+                    position: 'relative',
+                    background: selected ? '#fef2f2' : '#ffffff',
+                    border: selected ? '2px solid #ef4444' : '1px solid #e2e8f0',
+                    borderRadius: 14,
+                    padding: '18px 16px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    boxShadow: selected ? '0 4px 12px rgba(239, 68, 68, 0.15)' : '0 2px 4px rgba(0,0,0,0.03)',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!selected) {
+                      e.currentTarget.style.borderColor = classColor;
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 15px -3px rgba(0,0,0,0.06)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!selected) {
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.03)';
+                    }
+                  }}
                 >
-                  {deleteMode && (
-                    <div className={`tp-roster-checkbox${selected ? ' tp-cb-checked' : ''}`}>
-                      {selected ? '✓' : ''}
+                  {/* Top Color Accent Line */}
+                  <div style={{ position: 'absolute', top: 0, left: 16, right: 16, height: 3, borderRadius: '3px 3px 0 0', background: selected ? '#ef4444' : classColor }} />
+
+                  {/* Header Row */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {deleteMode ? (
+                        <div style={{ width: 22, height: 22, borderRadius: 6, border: selected ? 'none' : '2px solid #cbd5e1', background: selected ? '#ef4444' : '#fff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>
+                          {selected ? '✓' : ''}
+                        </div>
+                      ) : (
+                        <div style={{ width: 34, height: 34, borderRadius: 10, background: '#f1f5f9', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700 }}>
+                          👥
+                        </div>
+                      )}
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{groupNameStr}</h4>
+                        <span style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>
+                          {studentCount} student{studentCount === 1 ? '' : 's'}
+                        </span>
+                      </div>
                     </div>
-                  )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1f2937' }}>{groupName}</p>
-                      <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
-                        {(classData.students || []).filter((student) => student.group === groupName).length} student{(classData.students || []).filter((student) => student.group === groupName).length === 1 ? '' : 's'}
-                      </p>
-                    </div>
-                    <span className="tp-badge" style={{ background: '#dbeafe', color: '#1d4ed8', flexShrink: 0 }}>Open</span>
+
+                    {!isReadOnly && canManage && !deleteMode && (
+                      <button
+                        type="button"
+                        title="Delete this group"
+                        onClick={(e) => handleSingleDelete(groupNameStr, e)}
+                        style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid #fee2e2', background: '#fef2f2', color: '#ef4444', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.8, transition: 'all 0.15s' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8'; e.currentTarget.style.transform = 'scale(1)'; }}
+                      >
+                        🗑️
+                      </button>
+                    )}
                   </div>
-                </button>
+
+                  {/* Card Footer CTA */}
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: '#64748b' }}>
+                      {deleteMode ? (selected ? 'Selected for deletion' : 'Click to select') : 'Group Roster'}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: classColor, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>View</span>
+                      <span>➔</span>
+                    </span>
+                  </div>
+                </div>
               );
             })}
           </div>
         )}
       </div>
 
+      {/* Floating Action Bar during Delete Mode */}
       {!isReadOnly && canManage && deleteMode && (
-        <div className="tp-delete-section">
-          <div className="tp-delete-bar">
-            <div className="tp-delete-bar-left">
-              <span className="tp-delete-count">{selectedGroups.size} of {groupsForView.length} selected</span>
-              <button className="tp-select-all-btn" onClick={selectedGroups.size === groupsForView.length ? clearAll : selectAll}>
-                {selectedGroups.size === groupsForView.length ? 'Deselect All' : 'Select All'}
-              </button>
-            </div>
-            <div className="tp-delete-bar-right">
-              <button className="tp-delete-cancel-btn" onClick={() => { setDeleteMode(false); setSelectedGroups(new Set()); }}>
-                Cancel
-              </button>
-              <button className="tp-delete-exec-btn" disabled={selectedGroups.size === 0} onClick={() => setShowConfirm(true)}>
-                🗑️ Delete ({selectedGroups.size})
-              </button>
-            </div>
+        <div className="tp-floating-delete-bar">
+          <div className="tp-floating-delete-bar-left">
+            <span className="tp-floating-delete-bar-text">
+              {selectedGroups.size} of {groupsForView.length} Selected
+            </span>
+            <button
+              type="button"
+              className="tp-floating-delete-bar-btn"
+              onClick={selectedGroups.size === groupsForView.length ? clearAll : selectAll}
+            >
+              {selectedGroups.size === groupsForView.length ? 'Deselect All' : 'Select All'}
+            </button>
+          </div>
+
+          <div className="tp-floating-delete-bar-right">
+            <button
+              type="button"
+              className="tp-floating-delete-cancel-btn"
+              onClick={() => { setDeleteMode(false); setSelectedGroups(new Set()); }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={selectedGroups.size === 0}
+              className="tp-floating-delete-exec-btn"
+              onClick={() => setShowConfirm(true)}
+            >
+              🗑️ Delete ({selectedGroups.size})
+            </button>
           </div>
         </div>
       )}
@@ -928,8 +1180,8 @@ function StudentRoster({
   onDeleteStudents,
   onUpdateStudent,
   teachers = [],
-  timeSlots,         // <-- এই লাইনটি যোগ করুন
-  onSaveTimeSlots,   // <-- এই লাইনটি যোগ করুন
+  timeSlots,
+  onSaveTimeSlots,
   onAssignTeacher,
   onUpdateGroupSubjects,
   groupSubjects = [],
@@ -937,6 +1189,10 @@ function StudentRoster({
   isReadOnly = false,
   canModifyClass = true,
 }) {
+  const safeGroupName = typeof groupName === 'object' && groupName !== null
+    ? (groupName.name || groupName.id || 'Group')
+    : String(groupName || '');
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAssignTeacherModal, setShowAssignTeacherModal] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
@@ -951,7 +1207,7 @@ function StudentRoster({
   const canManage = Boolean(canModifyClass);
   const students = Array.isArray(classData.students) ? classData.students : [];
   const savedSubjects = Array.isArray(groupSubjects) ? groupSubjects : [];
-  const assignedTeachers = Array.isArray(classData.groupTeachers?.[groupName]) ? classData.groupTeachers[groupName] : [];
+  const assignedTeachers = Array.isArray(classData.groupTeachers?.[safeGroupName]) ? classData.groupTeachers[safeGroupName] : [];
   const commonSubjects = ['Bangla', 'English', 'Math', 'Science', 'Social Science', 'Religion', 'ICT'];
 
   const toggleSelect = (studentId) => {
@@ -976,13 +1232,13 @@ function StudentRoster({
     const nextValue = String(subjectValue ?? subjectDraft ?? '').trim();
     if (!nextValue) return;
     const nextSubjects = Array.from(new Set([...savedSubjects, nextValue]));
-    onUpdateGroupSubjects?.(classIdx, groupName, nextSubjects);
+    onUpdateGroupSubjects?.(classIdx, safeGroupName, nextSubjects);
     setSubjectDraft('');
   };
 
   const handleRemoveSubject = (subject) => {
     const nextSubjects = savedSubjects.filter((item) => item !== subject);
-    onUpdateGroupSubjects?.(classIdx, groupName, nextSubjects);
+    onUpdateGroupSubjects?.(classIdx, safeGroupName, nextSubjects);
   };
 
   const openEditStudent = (student) => {
@@ -1034,12 +1290,12 @@ function StudentRoster({
         <AddStudentModal
           onClose={() => setShowAddModal(false)}
           onAdd={(student) => {
-            onAddStudent?.(classIdx, student, groupName);
+            onAddStudent?.(classIdx, student, safeGroupName);
             setShowAddModal(false);
           }}
           existingRolls={students.map((s) => String(s.roll || '').trim())}
           classColor={classColor}
-          groupName={groupName}
+          groupName={safeGroupName}
         />
       )}
 
@@ -1047,10 +1303,10 @@ function StudentRoster({
         <AssignTeacherModal
           onClose={() => setShowAssignTeacherModal(false)}
           teachers={teachers}
-          assignedTeacherEmails={classData.groupTeachers?.[groupName] || []}
+          assignedTeacherEmails={classData.groupTeachers?.[safeGroupName] || []}
           groupSubjects={savedSubjects}
           onAssign={(teacherEmails) => {
-            onAssignTeacher?.(classIdx, groupName, teacherEmails);
+            onAssignTeacher?.(classIdx, safeGroupName, teacherEmails);
             setShowAssignTeacherModal(false);
           }}
           themeColor={classColor}
@@ -1059,68 +1315,72 @@ function StudentRoster({
 
       {!isReadOnly && editingStudent && (
         <div className="tp-modal-overlay" onClick={() => setEditingStudent(null)}>
-          <div className="tp-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="tp-modal-header" style={{ borderBottomColor: classColor }}>
-              <h3 className="tp-modal-title">✏️ Edit Student Details</h3>
+          <div className="tp-modal" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', width: '90%', maxWidth: '520px', borderRadius: '16px', border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)', overflow: 'hidden' }}>
+            <div className="tp-modal-header" style={{ borderBottomColor: classColor || '#4f46e5', flexShrink: 0, padding: '16px 20px' }}>
+              <h3 className="tp-modal-title" style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>✏️ Edit Student Details</h3>
               <button className="tp-modal-close" onClick={() => setEditingStudent(null)} aria-label="Close">✕</button>
             </div>
-            <form className="tp-modal-body" onSubmit={saveEditedStudent}>
-              {/* Photo Upload Section */}
-              <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                <label htmlFor="tp-student-edit-photo" style={{ cursor: 'pointer', display: 'inline-block' }}>
-                  {editDraft.profilePic ? (
-                    <div style={{ position: 'relative', width: 90, height: 90, borderRadius: 14, overflow: 'hidden', margin: '0 auto', border: `2px solid ${classColor}` }}>
-                      <img src={editDraft.profilePic} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      <div style={{ position: 'absolute', bottom: 0, inset: 'auto 0 0 0', background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 9, fontWeight: 700, textAlign: 'center', padding: '2px 0' }}>
-                        Change 300×300
+            <form onSubmit={saveEditedStudent} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              <div className="tp-modal-body" style={{ flex: '1 1 auto', overflowY: 'auto', padding: '20px' }}>
+                {/* Photo Upload Section */}
+                <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                  <label htmlFor="tp-student-edit-photo" style={{ cursor: 'pointer', display: 'inline-block' }}>
+                    {editDraft.profilePic ? (
+                      <div style={{ position: 'relative', width: 90, height: 90, borderRadius: 14, overflow: 'hidden', margin: '0 auto', border: `2px solid ${classColor || '#4f46e5'}` }}>
+                        <img src={editDraft.profilePic} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', bottom: 0, inset: 'auto 0 0 0', background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 9, fontWeight: 700, textAlign: 'center', padding: '2px 0' }}>
+                          Change 300×300
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div style={{ width: 90, height: 90, borderRadius: 14, border: `2px dashed ${classColor}`, background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
-                      <span style={{ fontSize: 22 }}>📸</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: '#334155' }}>Upload Photo</span>
-                      <span style={{ fontSize: 8, color: '#64748b' }}>300 × 300 px</span>
-                    </div>
-                  )}
-                </label>
-                <input
-                  id="tp-student-edit-photo"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleEditPhotoUpload}
-                  style={{ display: 'none' }}
-                />
-              </div>
+                    ) : (
+                      <div style={{ width: 90, height: 90, borderRadius: 14, border: `2px dashed ${classColor || '#4f46e5'}`, background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                        <span style={{ fontSize: 22 }}>📸</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#334155' }}>Upload Photo</span>
+                        <span style={{ fontSize: 8, color: '#64748b' }}>300 × 300 px</span>
+                      </div>
+                    )}
+                  </label>
+                  <input
+                    id="tp-student-edit-photo"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditPhotoUpload}
+                    style={{ display: 'none' }}
+                  />
+                </div>
 
-              <div className="tp-form-grid">
-                <div className="tp-form-group tp-form-full">
-                  <label className="tp-form-label">Student Name *</label>
-                  <input className="tp-form-input" value={editDraft.name} onChange={(e) => setEditDraft(prev => ({ ...prev, name: e.target.value }))} required />
-                </div>
-                <div className="tp-form-group">
-                  <label className="tp-form-label">Roll Number *</label>
-                  <input className="tp-form-input" value={editDraft.roll} onChange={(e) => setEditDraft(prev => ({ ...prev, roll: e.target.value }))} required />
-                </div>
-                <div className="tp-form-group">
-                  <label className="tp-form-label">Phone</label>
-                  <input className="tp-form-input" value={editDraft.phone} onChange={(e) => setEditDraft(prev => ({ ...prev, phone: e.target.value }))} />
-                </div>
-                <div className="tp-form-group">
-                  <label className="tp-form-label">Father's Name</label>
-                  <input className="tp-form-input" value={editDraft.fatherName} onChange={(e) => setEditDraft(prev => ({ ...prev, fatherName: e.target.value }))} />
-                </div>
-                <div className="tp-form-group">
-                  <label className="tp-form-label">Mother's Name</label>
-                  <input className="tp-form-input" value={editDraft.motherName} onChange={(e) => setEditDraft(prev => ({ ...prev, motherName: e.target.value }))} />
-                </div>
-                <div className="tp-form-group tp-form-full">
-                  <label className="tp-form-label">Date of Birth (Birthday)</label>
-                  <input className="tp-form-input" type="date" value={editDraft.dob} onChange={(e) => setEditDraft(prev => ({ ...prev, dob: e.target.value }))} />
+                <div className="tp-form-grid">
+                  <div className="tp-form-group tp-form-full">
+                    <label className="tp-form-label">Student Name *</label>
+                    <input className="tp-form-input" value={editDraft.name} onChange={(e) => setEditDraft(prev => ({ ...prev, name: e.target.value }))} required />
+                  </div>
+                  <div className="tp-form-group">
+                    <label className="tp-form-label">Roll Number *</label>
+                    <input className="tp-form-input" value={editDraft.roll} onChange={(e) => setEditDraft(prev => ({ ...prev, roll: e.target.value }))} required />
+                  </div>
+                  <div className="tp-form-group">
+                    <label className="tp-form-label">Phone</label>
+                    <input className="tp-form-input" value={editDraft.phone} onChange={(e) => setEditDraft(prev => ({ ...prev, phone: e.target.value }))} />
+                  </div>
+                  <div className="tp-form-group">
+                    <label className="tp-form-label">Father's Name</label>
+                    <input className="tp-form-input" value={editDraft.fatherName} onChange={(e) => setEditDraft(prev => ({ ...prev, fatherName: e.target.value }))} />
+                  </div>
+                  <div className="tp-form-group">
+                    <label className="tp-form-label">Mother's Name</label>
+                    <input className="tp-form-input" value={editDraft.motherName} onChange={(e) => setEditDraft(prev => ({ ...prev, motherName: e.target.value }))} />
+                  </div>
+                  <div className="tp-form-group tp-form-full">
+                    <label className="tp-form-label">Date of Birth (Birthday)</label>
+                    <input className="tp-form-input" type="date" value={editDraft.dob} onChange={(e) => setEditDraft(prev => ({ ...prev, dob: e.target.value }))} />
+                  </div>
                 </div>
               </div>
-              <div className="tp-modal-footer">
+              <div className="tp-modal-footer" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '14px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
                 <button type="button" className="tp-modal-cancel-btn" onClick={() => setEditingStudent(null)}>Cancel</button>
-                <button type="submit" className="tp-modal-submit-btn" style={{ background: classColor }}>Save Changes</button>
+                <button type="submit" className="tp-modal-submit-btn" style={{ background: `linear-gradient(135deg, ${classColor || '#4f46e5'} 0%, #3b82f6 100%)`, color: '#ffffff', fontWeight: 700, padding: '9px 20px', borderRadius: 10, boxShadow: '0 4px 12px rgba(59, 130, 246, 0.35)' }}>
+                  Save Changes
+                </button>
               </div>
             </form>
           </div>
@@ -1145,6 +1405,7 @@ function StudentRoster({
         </div>
       )}
 
+      {/* Header Section */}
       <div className="tp-section-header">
         <button className="tp-back-btn" onClick={onBack} title="Back to Groups" aria-label="Back to Groups">
           <ChevronLeft />
@@ -1153,175 +1414,429 @@ function StudentRoster({
           <div className="tp-breadcrumbs" aria-label="Breadcrumb">
             <button type="button" className="tp-crumb-link" onClick={onBack}>Groups</button>
             <span className="tp-crumb-separator">/</span>
-            <span className="tp-crumb-current">{groupName}</span>
+            <span className="tp-crumb-current">{safeGroupName}</span>
           </div>
-          <h2 className="tp-section-title">{classData.className} — {groupName}</h2>
+          <h2 className="tp-section-title">{classData.className} — {safeGroupName}</h2>
         </div>
       </div>
 
-      <div className="tp-roster-toolbar" style={{ flexWrap: 'wrap', gap: 10 }}>
-        <span className="tp-roster-badge" style={{ flexShrink: 0 }}>🎓 {students.length} Students in {groupName}</span>
-        {!isReadOnly && canManage && (
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button className="tp-add-student-btn" style={{ background: classColor, whiteSpace: 'nowrap' }} onClick={() => setShowAddModal(true)}>
-              + Add Student
-            </button>
-            <button className="tp-add-student-btn" style={{ background: '#38b26e', whiteSpace: 'nowrap' }} onClick={() => setShowAssignTeacherModal(true)}>
-              Assign Teacher
-            </button>
+      {/* KPI Stats Bar */}
+      <div className="tp-kpi-bar-wrapper" style={{ margin: '0 20px 16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+        <div className="tp-kpi-card-item" style={{ background: '#ffffff', borderRadius: 14, padding: '14px 18px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="tp-kpi-icon-box" style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 6px -1px rgba(99,102,241,0.25)', flexShrink: 0 }}>
+            🎓
           </div>
-        )}
-      </div>
-
-      <div className="tp-detail-card" style={{ margin: '0 20px 16px', padding: '16px 18px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
-          <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1f2937' }}>📚 Group Subjects</p>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#475569', lineHeight: 1.4 }}>{isReadOnly ? `Subjects taught in ${groupName}.` : `Add subjects for ${groupName} and assign teachers by subject.`}</p>
+          <div>
+            <p className="tp-kpi-text-label" style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em' }}>Enrolled Students</p>
+            <p className="tp-kpi-text-val" style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{students.length}</p>
           </div>
-          <span className="tp-badge" style={{ background: '#dbeafe', color: '#1d4ed8', flexShrink: 0 }}>{savedSubjects.length} Subject{savedSubjects.length !== 1 ? 's' : ''}</span>
         </div>
 
+        <div className="tp-kpi-card-item" style={{ background: '#ffffff', borderRadius: 14, padding: '14px 18px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="tp-kpi-icon-box" style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 6px -1px rgba(16,185,129,0.25)', flexShrink: 0 }}>
+            📚
+          </div>
+          <div>
+            <p className="tp-kpi-text-label" style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em' }}>Group Subjects</p>
+            <p className="tp-kpi-text-val" style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{savedSubjects.length}</p>
+          </div>
+        </div>
+
+        <div className="tp-kpi-card-item" style={{ background: '#ffffff', borderRadius: 14, padding: '14px 18px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="tp-kpi-icon-box" style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: '0 4px 6px -1px rgba(59,130,246,0.25)', flexShrink: 0 }}>
+            👩‍🏫
+          </div>
+          <div>
+            <p className="tp-kpi-text-label" style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em' }}>Assigned Faculty</p>
+            <p className="tp-kpi-text-val" style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{assignedTeachers.length}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Container Card: Group Subjects & Faculty */}
+      <div className="tp-detail-card tp-group-roster-container" style={{ margin: '0 20px 20px', padding: '20px 22px', borderRadius: 16, background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+        
+        {/* Header & Quick Action Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>📚 Subjects & Assigned Teachers</h3>
+            <p style={{ margin: '2px 0 0', fontSize: 12.5, color: '#64748b' }}>Manage curriculum subjects and assign subject teachers for {safeGroupName}</p>
+          </div>
+
+          {!isReadOnly && canManage && (
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                style={{
+                  background: `linear-gradient(135deg, ${classColor || '#4f46e5'} 0%, #3b82f6 100%)`,
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '9px 18px',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 13.5,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 10px -2px rgba(59, 130, 246, 0.35)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>+</span>
+                <span>Add Student</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAssignTeacherModal(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '9px 18px',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 13.5,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 10px -2px rgba(16, 185, 129, 0.35)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>👩‍🏫</span>
+                <span>Assign Teacher</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={students.length === 0}
+                onClick={() => {
+                  setDeleteMode(v => !v);
+                  if (deleteMode) setSelectedIds(new Set());
+                }}
+                style={{
+                  background: deleteMode ? '#ef4444' : '#f1f5f9',
+                  color: deleteMode ? '#ffffff' : '#475569',
+                  border: deleteMode ? 'none' : '1px solid #cbd5e1',
+                  padding: '9px 16px',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 13.5,
+                  cursor: students.length === 0 ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  opacity: students.length === 0 ? 0.6 : 1,
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>{deleteMode ? '✕ Cancel' : '🗑️ Delete Students'}</span>
+                {deleteMode && selectedIds.size > 0 && (
+                  <span style={{ background: '#ffffff', color: '#ef4444', padding: '1px 6px', borderRadius: 999, fontSize: 11, fontWeight: 800 }}>
+                    {selectedIds.size}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Add Subject Input Toolbar */}
         {!isReadOnly && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-            <input
-              className="tp-form-input"
-              value={subjectDraft}
-              onChange={(e) => setSubjectDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddSubject();
-                }
-              }}
-              placeholder="Type subject name"
-              style={{ flex: 1, minWidth: 220 }}
-            />
-            <button type="button" className="tp-add-student-btn" style={{ background: classColor, padding: '8px 12px' }} onClick={() => handleAddSubject()}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ flex: '1 1 220px', minWidth: 0, height: 42, background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: 10, display: 'flex', alignItems: 'center', padding: '0 12px', boxSizing: 'border-box' }}>
+              <span style={{ fontSize: 15, color: '#64748b', marginRight: 8, flexShrink: 0 }}>📖</span>
+              <input
+                type="text"
+                placeholder="Type new subject name..."
+                value={subjectDraft}
+                onChange={(e) => setSubjectDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddSubject();
+                  }
+                }}
+                style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontSize: 13.5, color: '#0f172a', padding: 0 }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => handleAddSubject()}
+              style={{ background: classColor || '#4f46e5', color: '#ffffff', border: 'none', padding: '0 16px', height: 42, borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
+            >
               + Add Subject
             </button>
           </div>
         )}
 
+        {/* Quick Suggestion Pills */}
         {!isReadOnly && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: savedSubjects.length > 0 ? 12 : 0 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
             {commonSubjects.filter((subject) => !savedSubjects.includes(subject)).map((subject) => (
-              <button key={subject} type="button" className="tp-small-btn" style={{ borderColor: '#cbd5e1', color: '#334155', background: '#f8fafc' }} onClick={() => handleAddSubject(subject)}>
+              <button
+                key={subject}
+                type="button"
+                onClick={() => handleAddSubject(subject)}
+                style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#0f172a'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#334155'; }}
+              >
                 + {subject}
               </button>
             ))}
           </div>
         )}
 
-        {savedSubjects.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {savedSubjects.map((subject) => (
-              <span key={subject} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 999, background: '#dcfce7', color: '#166534', fontSize: 12, fontWeight: 700 }}>
-                {subject}
-                {!isReadOnly && (
-                  <button type="button" aria-label={`Remove ${subject}`} onClick={() => handleRemoveSubject(subject)} style={{ border: 0, background: 'transparent', color: '#166534', cursor: 'pointer', padding: 0, fontWeight: 900 }}>
-                    ×
-                  </button>
-                )}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>No subjects added yet.</p>
-        )}
-
-        <div style={{ marginTop: 16, borderTop: '1px solid #e2e8f0', paddingTop: 16 }}>
-          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1f2937' }}>👩‍🏫 Assigned Teachers</p>
-          {assignedTeachers.length > 0 ? (
-            <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
-              {assignedTeachers.map((teacher) => (
-                <div key={`${teacher.email}-${teacher.subject}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '10px 12px', borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                  <div>
-                    <p style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>{teachers.find((t) => t.email === teacher.email)?.name || teacher.email}</p>
-                    <p style={{ margin: '4px 0 0', fontSize: 13, color: '#475569' }}>{teacher.subject || 'Unassigned'}</p>
-                  </div>
-                </div>
+        {/* Active Subjects List */}
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em' }}>Current Active Subjects:</p>
+          {savedSubjects.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {savedSubjects.map((subject) => (
+                <span
+                  key={subject}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '6px 12px',
+                    borderRadius: 999,
+                    background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
+                    color: '#166534',
+                    border: '1px solid #86efac',
+                    fontSize: 12.5,
+                    fontWeight: 700
+                  }}
+                >
+                  <span>📘 {subject}</span>
+                  {!isReadOnly && (
+                    <button
+                      type="button"
+                      aria-label={`Remove ${subject}`}
+                      onClick={() => handleRemoveSubject(subject)}
+                      style={{ border: 0, background: 'rgba(22, 101, 52, 0.15)', color: '#166534', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 13, fontWeight: 800, padding: 0 }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </span>
               ))}
             </div>
           ) : (
-            <p style={{ margin: '8px 0 0', fontSize: 13, color: '#94a3b8' }}>No teachers assigned to this group yet.</p>
+            <p style={{ margin: 0, fontSize: 13, color: '#94a3b8', fontStyle: 'italic' }}>No subjects added to this group yet.</p>
+          )}
+        </div>
+
+        {/* Assigned Teachers Section */}
+        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 16 }}>
+          <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em' }}>Assigned Subject Teachers:</p>
+          {assignedTeachers.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+              {assignedTeachers.map((teacherObj) => {
+                const teacherProfile = teachers.find((t) => t.email === teacherObj.email);
+                const teacherName = teacherProfile?.name || teacherObj.email;
+                return (
+                  <div key={`${teacherObj.email}-${teacherObj.subject}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>
+                      👩‍🏫
+                    </div>
+                    <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{teacherName}</p>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#059669', background: '#dcfce7', padding: '1px 6px', borderRadius: 6, display: 'inline-block', marginTop: 2 }}>
+                        {teacherObj.subject || 'All Subjects'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ padding: '12px 14px', borderRadius: 12, background: '#f8fafc', border: '1px dashed #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <span style={{ fontSize: 13, color: '#64748b' }}>No teachers assigned to this group yet.</span>
+              {!isReadOnly && canManage && (
+                <button
+                  type="button"
+                  onClick={() => setShowAssignTeacherModal(true)}
+                  style={{ background: '#10b981', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  + Assign Faculty
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
 
-      {students.length === 0 ? (
-        <div className="tp-roster-empty">
-          <span>👥</span>
-          <p>No students in {groupName} yet. Add the first student.</p>
+      {/* Student List Cards Section */}
+      <div className="tp-detail-card tp-group-roster-container" style={{ margin: '0 20px 24px', padding: '20px 22px', borderRadius: 16, background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+        <div style={{ marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>🎓 Student Directory ({students.length})</h3>
+          <p style={{ margin: '2px 0 0', fontSize: 12.5, color: '#64748b' }}>Click on any student card to view their profile details</p>
         </div>
-      ) : (
-        <div className="tp-student-roster-grid">
-          {students.map((student, index) => {
-            const isMenuOpen = activeMenuId === String(student.id);
-            return (
-              <div key={student.id} className={`tp-student-roster-card${deleteMode && selectedIds.has(student.id) ? ' tp-card-selected' : ''}${deleteMode ? ' tp-card-selectable' : ''}`} onClick={deleteMode ? () => toggleSelect(student.id) : undefined} style={{ paddingRight: deleteMode ? 16 : 44, zIndex: isMenuOpen ? 300 : 'auto' }}>
-                {deleteMode && (
-                  <div className={`tp-roster-checkbox${selectedIds.has(student.id) ? ' tp-cb-checked' : ''}`}>
-                    {selectedIds.has(student.id) ? '✓' : ''}
+
+        {students.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: 14, border: '1.5px dashed #cbd5e1' }}>
+            <div style={{ fontSize: 42, marginBottom: 10 }}>👥</div>
+            <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#334155' }}>
+              No students enrolled in {safeGroupName} yet
+            </h4>
+            <p style={{ margin: '6px 0 16px', fontSize: 13, color: '#64748b' }}>
+              Add students to this group to manage their profiles, attendance, and exam marks.
+            </p>
+            {!isReadOnly && canManage && (
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                style={{ background: classColor || '#4f46e5', color: '#fff', border: 'none', padding: '9px 18px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+              >
+                + Add First Student
+              </button>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+            {students.map((student, index) => {
+              const isMenuOpen = activeMenuId === String(student.id);
+              const isSelected = selectedIds.has(student.id);
+
+              return (
+                <div
+                  key={student.id}
+                  onClick={deleteMode ? () => toggleSelect(student.id) : () => onViewStudentProfile?.(student)}
+                  style={{
+                    position: 'relative',
+                    background: isSelected ? '#fef2f2' : '#ffffff',
+                    border: isSelected ? '2px solid #ef4444' : '1px solid #e2e8f0',
+                    borderRadius: 14,
+                    padding: '14px 16px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    boxShadow: isSelected ? '0 4px 12px rgba(239, 68, 68, 0.15)' : '0 2px 4px rgba(0,0,0,0.03)',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    zIndex: isMenuOpen ? 300 : 'auto'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.borderColor = classColor || '#4f46e5';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }
+                  }}
+                >
+                  {/* Delete Mode Checkbox */}
+                  {deleteMode && (
+                    <div style={{ width: 22, height: 22, borderRadius: 6, border: isSelected ? 'none' : '2px solid #cbd5e1', background: isSelected ? '#ef4444' : '#fff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
+                      {isSelected ? '✓' : ''}
+                    </div>
+                  )}
+
+                  {/* Profile Avatar */}
+                  {student.profilePic ? (
+                    <img src={student.profilePic} alt={student.name} style={{ width: 44, height: 44, borderRadius: 12, objectFit: 'cover', border: '1.5px solid #e2e8f0', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: `linear-gradient(135deg, ${classColor || '#4f46e5'} 0%, #3b82f6 100%)`, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, flexShrink: 0, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                      {(student.name || 'S').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+
+                  {/* Student Info */}
+                  <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {student.name}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: '#2563eb', background: '#dbeafe', padding: '1px 6px', borderRadius: 6 }}>
+                        Roll: {student.roll || '#N/A'}
+                      </span>
+                      {student.phone && (
+                        <span style={{ fontSize: 11, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          📞 {student.phone}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                )}
 
-                {student.profilePic ? <img src={student.profilePic} alt={student.name} className="tp-roster-avatar-img" /> : <div className="tp-roster-avatar" style={{ background: classColor }}>{(student.name || 'S').charAt(0)}</div>}
-
-                <div className="tp-roster-info">
-                  <button type="button" className="tp-roster-name" onClick={(e) => { e.stopPropagation(); onViewStudentProfile?.(student); }} style={{ background: 'transparent', border: 'none', padding: 0, margin: 0, textAlign: 'left', cursor: 'pointer' }}>
-                    {student.name}
-                  </button>
-                  <p className="tp-roster-id">ID: {student.id}</p>
-                  <p className="tp-roster-roll">Roll No: {student.roll}</p>
+                  {/* Options Menu Button */}
+                  {!isReadOnly && canManage && !deleteMode && (
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setActiveMenuId(isMenuOpen ? null : String(student.id)); }}
+                        style={{ background: '#f1f5f9', border: 'none', borderRadius: 8, width: 28, height: 28, fontSize: 15, fontWeight: 800, color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        ⋮
+                      </button>
+                      {isMenuOpen && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ position: 'absolute', right: 0, top: 32, zIndex: 320, background: '#ffffff', borderRadius: 12, padding: 6, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', minWidth: 130 }}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEditStudent(student); setActiveMenuId(null); }}
+                            style={{ width: '100%', border: 'none', background: 'transparent', padding: '8px 12px', textAlign: 'left', fontSize: 12.5, fontWeight: 600, color: '#334155', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                          >
+                            ✏️ Edit Details
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-                {!isReadOnly && canManage && !deleteMode && (
-                  <>
-                    <button className="tp-roster-options-btn" type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuId(isMenuOpen ? null : String(student.id)); }} aria-label="Options" style={{ zIndex: 210 }}>
-                      ⋮
-                    </button>
-                    {isMenuOpen && (
-                      <div className="tp-dropdown-menu" style={{ zIndex: 220 }} onClick={(e) => e.stopPropagation()}>
-                        <button type="button" className="tp-dropdown-item" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEditStudent(student); setActiveMenuId(null); }}>
-                          ✏️ Edit Details
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                <span className="tp-roster-num">#{String(index + 1).padStart(2, '0')}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {!isReadOnly && canManage && (
-        <div className="tp-delete-section">
-          {!deleteMode ? (
-            <button className="tp-delete-toggle-btn" onClick={() => setDeleteMode(true)} disabled={students.length === 0}>
-              🗑️ Select Students to Delete
+      {/* Floating Action Bar during Student Delete Mode */}
+      {!isReadOnly && canManage && deleteMode && (
+        <div className="tp-floating-delete-bar">
+          <div className="tp-floating-delete-bar-left">
+            <span className="tp-floating-delete-bar-text">
+              {selectedIds.size} of {students.length} Selected
+            </span>
+            <button
+              type="button"
+              onClick={selectedIds.size === students.length ? clearAll : selectAll}
+              style={{ background: '#334155', color: '#e2e8f0', border: 'none', padding: '5px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            >
+              {selectedIds.size === students.length ? 'Deselect All' : 'Select All'}
             </button>
-          ) : (
-            <div className="tp-delete-bar">
-              <div className="tp-delete-bar-left">
-                <span className="tp-delete-count">{selectedIds.size} of {students.length} selected</span>
-                <button className="tp-select-all-btn" onClick={selectedIds.size === students.length ? clearAll : selectAll}>
-                  {selectedIds.size === students.length ? 'Deselect All' : 'Select All'}
-                </button>
-              </div>
-              <div className="tp-delete-bar-right">
-                <button className="tp-delete-cancel-btn" onClick={() => { setDeleteMode(false); setSelectedIds(new Set()); }}>
-                  Cancel
-                </button>
-                <button className="tp-delete-exec-btn" disabled={selectedIds.size === 0} onClick={() => setShowConfirm(true)}>
-                  🗑️ Delete ({selectedIds.size})
-                </button>
-              </div>
-            </div>
-          )}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => { setDeleteMode(false); setSelectedIds(new Set()); }}
+              style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={selectedIds.size === 0}
+              onClick={() => setShowConfirm(true)}
+              style={{ background: selectedIds.size === 0 ? '#475569' : '#ef4444', color: '#ffffff', border: 'none', padding: '7px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: selectedIds.size === 0 ? 'not-allowed' : 'pointer', boxShadow: selectedIds.size === 0 ? 'none' : '0 4px 10px rgba(239,68,68,0.4)' }}
+            >
+              🗑️ Delete ({selectedIds.size})
+            </button>
+          </div>
         </div>
       )}
     </>
@@ -1563,81 +2078,106 @@ function AssignTeacherModal({ onClose, teachers, assignedTeacherEmails, groupSub
 
   return (
     <div className="tp-modal-overlay" onClick={onClose}>
-      <div className="tp-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="tp-modal-header" style={{ borderBottomColor: themeColor }}>
-          <h3 className="tp-modal-title">👩‍🏫 Assign Teachers by Subject</h3>
+      <div className="tp-modal" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', width: '90%', maxWidth: '520px', borderRadius: '16px', border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)', overflow: 'hidden' }}>
+        <div className="tp-modal-header" style={{ borderBottomColor: themeColor || '#10b981', flexShrink: 0, padding: '16px 20px' }}>
+          <h3 className="tp-modal-title" style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>👩‍🏫 Assign Teachers by Subject</h3>
           <button className="tp-modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
 
-        <form className="tp-modal-body" onSubmit={handleSubmit}>
-          <div className="tp-form-grid" style={{ gridTemplateColumns: '1fr' }}>
-            <div className="tp-form-group tp-form-full">
-              <label className="tp-form-label">Select teachers one by one</label>
-              <div style={{ display: 'grid', gap: 10, marginTop: 8 }}>
-                {teacherRows.map((t) => {
-                  const selectedTeacher = getSelectedTeacher(t.rowId);
-                  const selected = Boolean(selectedTeacher);
-                  const selectedValue = selectedTeacher?.subject || groupSubjectOptions[0] || '';
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div className="tp-modal-body" style={{ flex: '1 1 auto', overflowY: 'auto', padding: '20px' }}>
+            <div className="tp-form-grid" style={{ gridTemplateColumns: '1fr' }}>
+              <div className="tp-form-group tp-form-full">
+                <label className="tp-form-label" style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>
+                  Select faculty members & assign subjects
+                </label>
+                <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
+                  {teacherRows.map((t) => {
+                    const selectedTeacher = getSelectedTeacher(t.rowId);
+                    const selected = Boolean(selectedTeacher);
+                    const selectedValue = selectedTeacher?.subject || groupSubjectOptions[0] || '';
 
-                  return (
-                    <div
-                      key={t.rowId}
-                      style={{
-                        display: 'grid',
-                        gap: 8,
-                        padding: '10px 12px',
-                        borderRadius: 12,
-                        border: '1px solid #e2e8f0',
-                        background: selected ? '#eff6ff' : '#fff',
-                      }}
-                    >
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={(e) => toggleTeacher(t.rowId, e.target.checked)}
-                          style={{ width: 16, height: 16, margin: 0 }}
-                        />
-                        <div style={{ minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>{t.name}</p>
-                          <p style={{ margin: '3px 0 0', fontSize: 13, color: '#475569' }}>{t.subject}</p>
-                        </div>
-                      </label>
+                    return (
+                      <div
+                        key={t.rowId}
+                        style={{
+                          display: 'grid',
+                          gap: 10,
+                          padding: '12px 14px',
+                          borderRadius: 12,
+                          border: selected ? '2px solid #10b981' : '1px solid #e2e8f0',
+                          background: selected ? '#f0fdf4' : '#ffffff',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={(e) => toggleTeacher(t.rowId, e.target.checked)}
+                            style={{ width: 18, height: 18, margin: 0, accentColor: '#10b981', cursor: 'pointer' }}
+                          />
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{t.name}</p>
+                            <p style={{ margin: '2px 0 0', fontSize: 12.5, color: '#64748b' }}>{t.subject || t.email}</p>
+                          </div>
+                        </label>
 
-                      {selected && (
-                        <div>
-                          <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Subject for this teacher</label>
-                          <select
-                            value={selectedValue}
-                            onChange={(e) => updateTeacherSubject(t.rowId, e.target.value)}
-                            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff' }}
-                            disabled={groupSubjectOptions.length === 0}
-                          >
-                            {groupSubjectOptions.length > 0 ? (
-                              groupSubjectOptions.map((option) => (
-                                <option key={option} value={option}>{option}</option>
-                              ))
-                            ) : (
-                              <option value="">No subjects saved for this group</option>
-                            )}
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        {selected && (
+                          <div style={{ paddingTop: 6, borderTop: '1px solid #dcfce7' }}>
+                            <label style={{ display: 'block', marginBottom: 5, fontSize: 11.5, fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                              Assign Subject for {t.name}
+                            </label>
+                            <select
+                              value={selectedValue}
+                              onChange={(e) => updateTeacherSubject(t.rowId, e.target.value)}
+                              style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #cbd5e1', background: '#ffffff', fontSize: 13, color: '#0f172a', fontWeight: 600, outline: 'none' }}
+                              disabled={groupSubjectOptions.length === 0}
+                            >
+                              {groupSubjectOptions.length > 0 ? (
+                                groupSubjectOptions.map((option) => (
+                                  <option key={option} value={option}>{option}</option>
+                                ))
+                              ) : (
+                                <option value="">No subjects saved for this group</option>
+                              )}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
+
+            {groupSubjectOptions.length === 0 && (
+              <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, background: '#fef3c7', color: '#92400e', fontSize: 12.5, fontWeight: 600 }}>
+                💡 Tip: Add subjects under "Group Subjects" first so you can assign teachers by subject.
+              </div>
+            )}
           </div>
 
-          <div style={{ marginTop: 12, color: '#64748b', fontSize: 13 }}>
-            Choose each teacher separately and assign a subject for this group.
-          </div>
-
-          <div className="tp-modal-footer">
-            <button type="button" className="tp-modal-cancel-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="tp-modal-submit-btn" style={{ background: themeColor }}>
-              Save Assignment
+          <div className="tp-modal-footer" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '14px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
+            <button type="button" className="tp-modal-cancel-btn" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="tp-modal-submit-btn"
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#ffffff',
+                fontWeight: 700,
+                padding: '9px 20px',
+                borderRadius: 10,
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              ✨ Save Assignments
             </button>
           </div>
         </form>
@@ -2368,11 +2908,17 @@ function DetailContent({
       if (selectedGroup !== null) {
         const currentClass = classes[selectedClass];
         const visibleGroups = shouldRestrictToAssignedClasses && !isClassTeacherAccess
-          ? (currentClass?.groups || []).filter((group) => teacherAssignments.some((assignment) => assignment?.className === currentClass?.className && assignment?.groupName === group))
+          ? (currentClass?.groups || []).filter((group) => {
+            const gName = typeof group === 'object' && group !== null ? (group.name || group.id) : group;
+            return teacherAssignments.some((assignment) => assignment?.className === currentClass?.className && assignment?.groupName === gName);
+          })
           : (currentClass?.groups || []);
-        const currentGroup = visibleGroups?.[selectedGroup] || currentClass?.groups?.[0] || null;
+        const currentGroupRaw = visibleGroups?.[selectedGroup] || currentClass?.groups?.[0] || null;
+        const currentGroupName = typeof currentGroupRaw === 'object' && currentGroupRaw !== null
+          ? (currentGroupRaw.name || currentGroupRaw.id || 'Group')
+          : String(currentGroupRaw || '');
 
-        if (!currentGroup) {
+        if (!currentGroupRaw) {
           return (
             <div className="tp-roster-empty" style={{ margin: 20 }}>
               <span>🗂️</span>
@@ -2383,21 +2929,28 @@ function DetailContent({
 
         const filteredClassData = {
           ...currentClass,
-          students: (currentClass?.students || []).filter(s => s.group === currentGroup)
+          students: (currentClass?.students || []).filter(s => {
+            const sGroup = typeof s.group === 'object' && s.group !== null ? (s.group.name || s.group.id) : s.group;
+            return String(sGroup || '') === currentGroupName;
+          })
         };
         return (
           <StudentRoster
             classData={filteredClassData}
             classIdx={selectedClass}
-            groupName={currentGroup}
+            groupName={currentGroupName}
             onBack={onBackFromGroup}
-            onAddStudent={(classIdx, student) => onAddStudent(classIdx, student, currentGroup)}
+            onAddStudent={(classIdx, student) => onAddStudent(classIdx, student, currentGroupName)}
             onDeleteStudents={onDeleteStudents}
             onUpdateStudent={onUpdateStudent}
             teachers={teachers}
             onAssignTeacher={onAssignTeacher}
             onUpdateGroupSubjects={onUpdateGroupSubjects}
-            groupSubjects={classes[selectedClass].groupSubjects?.[currentGroup] || []}
+            groupSubjects={
+              classes[selectedClass]?.groupSubjects?.[currentGroupName] ||
+              classes[selectedClass]?.groupSubjects?.[currentGroupRaw?.id] ||
+              []
+            }
             onViewStudentProfile={onViewStudentProfile}
             isReadOnly={isReadOnly}
             canModifyClass={canModifyClass(selectedClass)}
@@ -2693,6 +3246,7 @@ function DetailContent({
    ══════════════════════════════════════════ */
 export default function TeacherPanel() {
   const { user, signOut } = useAuth();
+  const { lang, setLanguage, t } = useLanguage();
   const { showAlert } = useAlert();
   const { effectiveUser } = useViewMode();
   const activeUser = effectiveUser || user;
@@ -3204,9 +3758,6 @@ export default function TeacherPanel() {
     setClasses(nextClasses);
     writeStoredData(CLASSES_STORAGE_KEY, nextClasses, activeSchoolId);
 
-    // Flag remote update so auto-sync useEffect does not duplicate calls
-    isRemoteUpdate.current = true;
-
     try {
       // Save full teacherPanel document to Firestore immediately
       await saveTeacherPanelDataToFirestore({
@@ -3251,8 +3802,6 @@ export default function TeacherPanel() {
       purgeResultsForStudents(deletedStudentObjects, activeSchoolId).catch(() => { });
     }
 
-    isRemoteUpdate.current = true;
-
     setSelectedBranchKey(null);
     setSelectedClass(null);
     setSelectedGroup(null);
@@ -3271,46 +3820,113 @@ export default function TeacherPanel() {
     }
   };
 
-  const handleAddGroup = (classIdx, groupName) => {
+  const handleAddGroup = async (classIdx, groupName) => {
     if (!canModifyClass(classIdx)) return;
-    setClasses(prev => prev.map((cls, i) => {
-      if (i !== classIdx) return cls;
-      const groups = cls.groups || [];
-      if (groups.includes(groupName)) return cls;
-      return {
-        ...cls,
-        groups: [...groups, groupName],
-        groupSubjects: {
-          ...cls.groupSubjects,
-          [groupName]: [],
-        },
-        routines: {
-          ...cls.routines,
-          [groupName]: [],
-        },
-      };
-    }));
+    const cleanName = String(groupName || '').trim();
+    if (!cleanName) return;
+
+    const currentClasses = [...(classes || [])];
+    const targetClass = currentClasses[classIdx];
+    if (!targetClass) return;
+
+    const existingGroups = Array.isArray(targetClass.groups) ? targetClass.groups : [];
+    const exists = existingGroups.some((g) => {
+      const gName = typeof g === 'object' && g !== null ? (g.name || g.id || '') : String(g || '');
+      return gName.trim().toLowerCase() === cleanName.toLowerCase();
+    });
+    if (exists) return;
+
+    const newGroupObj = { id: `g-${Date.now()}`, name: cleanName, gridRoutine: {} };
+    const updatedClass = {
+      ...targetClass,
+      groups: [...existingGroups, newGroupObj],
+      groupSubjects: {
+        ...(targetClass.groupSubjects || {}),
+        [cleanName]: [],
+      },
+      routines: {
+        ...(targetClass.routines || {}),
+        [cleanName]: [],
+      },
+    };
+
+    currentClasses[classIdx] = updatedClass;
+    setClasses(currentClasses);
+    writeStoredData(CLASSES_STORAGE_KEY, currentClasses, activeSchoolId);
+
+    try {
+      await saveTeacherPanelDataToFirestore({
+        classes: currentClasses,
+        teachers,
+        teacherRoutines,
+        timeSlots,
+      }, activeSchoolId);
+      await saveClassRecord(updatedClass, activeSchoolId);
+    } catch (err) {
+      console.error('Failed to save added group to Firestore:', err);
+    }
   };
 
-  const handleDeleteGroups = (classIdx, groupNames) => {
+  const handleDeleteGroups = async (classIdx, groupNames) => {
     if (!canModifyClass(classIdx)) return;
-    const groupSet = new Set(groupNames);
-    setClasses(prev => prev.map((cls, i) => {
-      if (i !== classIdx) return cls;
-      const remainingGroups = (cls.groups || []).filter(g => !groupSet.has(g));
-      const remainingStudents = (cls.students || []).filter(s => !groupSet.has(s.group));
-      const remainingGroupHeadTeachers = { ...cls.groupHeadTeachers };
-      const remainingRoutines = { ...cls.routines };
-      const remainingGroupTeachers = { ...cls.groupTeachers };
-      const remainingGroupSubjects = { ...cls.groupSubjects };
-      groupNames.forEach((name) => {
-        delete remainingGroupHeadTeachers[name];
-        delete remainingRoutines[name];
-        delete remainingGroupTeachers[name];
-        delete remainingGroupSubjects[name];
-      });
-      return { ...cls, groups: remainingGroups, students: remainingStudents, groupHeadTeachers: remainingGroupHeadTeachers, groupTeachers: remainingGroupTeachers, groupSubjects: remainingGroupSubjects, routines: remainingRoutines };
-    }));
+    if (!Array.isArray(groupNames) || groupNames.length === 0) return;
+
+    const currentClasses = [...(classes || [])];
+    const targetClass = currentClasses[classIdx];
+    if (!targetClass) return;
+
+    const deleteSet = new Set(groupNames.map((g) => String(g || '').trim().toLowerCase()));
+
+    const existingGroups = Array.isArray(targetClass.groups) ? targetClass.groups : [];
+    const remainingGroups = existingGroups.filter((g) => {
+      const gName = typeof g === 'object' && g !== null ? (g.name || g.id || '') : String(g || '');
+      return !deleteSet.has(String(gName || '').trim().toLowerCase());
+    });
+
+    const existingStudents = Array.isArray(targetClass.students) ? targetClass.students : [];
+    const remainingStudents = existingStudents.filter((s) => {
+      const sGrp = typeof s?.group === 'object' && s.group !== null ? (s.group.name || s.group.id || '') : String(s?.group || '');
+      return !deleteSet.has(String(sGrp || '').trim().toLowerCase());
+    });
+
+    const remainingGroupHeadTeachers = { ...(targetClass.groupHeadTeachers || {}) };
+    const remainingRoutines = { ...(targetClass.routines || {}) };
+    const remainingGroupTeachers = { ...(targetClass.groupTeachers || {}) };
+    const remainingGroupSubjects = { ...(targetClass.groupSubjects || {}) };
+
+    groupNames.forEach((name) => {
+      const cleanKey = String(name || '').trim();
+      delete remainingGroupHeadTeachers[cleanKey];
+      delete remainingRoutines[cleanKey];
+      delete remainingGroupTeachers[cleanKey];
+      delete remainingGroupSubjects[cleanKey];
+    });
+
+    const updatedClass = {
+      ...targetClass,
+      groups: remainingGroups,
+      students: remainingStudents,
+      groupHeadTeachers: remainingGroupHeadTeachers,
+      groupTeachers: remainingGroupTeachers,
+      groupSubjects: remainingGroupSubjects,
+      routines: remainingRoutines,
+    };
+
+    currentClasses[classIdx] = updatedClass;
+    setClasses(currentClasses);
+    writeStoredData(CLASSES_STORAGE_KEY, currentClasses, activeSchoolId);
+
+    try {
+      await saveTeacherPanelDataToFirestore({
+        classes: currentClasses,
+        teachers,
+        teacherRoutines,
+        timeSlots,
+      }, activeSchoolId);
+      await saveClassRecord(updatedClass, activeSchoolId);
+    } catch (err) {
+      console.error('Failed to save deleted groups to Firestore:', err);
+    }
   };
 
   const isHome = activeNav === 'home';

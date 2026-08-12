@@ -8,14 +8,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Ensures the client has an active Firebase Auth session token
+    // Validates that the client has an active Firebase Auth session (Anonymous or Authenticated user)
     function signedIn() {
-      return request.auth != null;
+      return request.auth != null && request.auth.uid != null;
     }
 
-    // Validates that write operations come from an authenticated session or valid app write payload
+    // Validates write operations come from an authenticated session or valid app write payload
     function isValidAppWrite() {
-      return signedIn() || (request.resource != null && request.resource.data != null && (request.resource.data.schemaVersion != null || request.resource.data.updatedAt != null));
+      return signedIn() || (
+        request.resource != null &&
+        request.resource.data != null &&
+        (
+          request.resource.data.schemaVersion != null ||
+          request.resource.data.updatedAt != null ||
+          request.resource.data.status != null ||
+          request.resource.data.schoolId != null ||
+          request.resource.data.createdAt != null
+        )
+      );
     }
 
     // ─── Schools Registry ─────────────────────────────────────────────────────
@@ -96,7 +106,7 @@ service cloud.firestore {
     match /exams/{examId} {
       allow read: if true;
       allow create, update: if isValidAppWrite();
-      allow delete: if signedIn() || (resource != null && resource.data.status == 'deleted');
+      allow delete: if signedIn();
     }
     match /exams/{examId}/{document=**} {
       allow read: if true;
@@ -182,7 +192,3 @@ service cloud.firestore {
     }
   }
 }
-
-
-
-

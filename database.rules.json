@@ -1,0 +1,86 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+      ".read": true,
+      "$uid": {
+        ".read": true,
+        ".write": "auth != null",
+        "userId": {
+          ".validate": "newData.isString()"
+        },
+        "role": {
+          ".validate": "newData.isString()"
+        }
+      }
+    },
+
+    "presence": {
+      ".indexOn": ["status", "lastSeen"],
+      "$uid": {
+        ".read": true,
+        ".write": "auth != null",
+        "status": {
+          ".validate": "newData.val() === 'online' || newData.val() === 'offline'"
+        },
+        "lastSeen": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+
+    "notifications": {
+      "$uid": {
+        ".read": true,
+        ".write": "auth != null"
+      }
+    },
+
+    "schoolSync": {
+      ".read": true,
+      ".write": "auth != null",
+      "$schoolId": {
+        ".read": true,
+        ".write": "auth != null"
+      }
+    },
+
+    "schools": {
+      ".read": true,
+      ".write": "auth != null",
+      ".indexOn": ["schoolId", "eiinNumber", "schoolCode"]
+    },
+
+    "schoolData": {
+      ".read": true,
+      ".write": "auth != null",
+      ".indexOn": ["schoolId"]
+    },
+
+    "teacherPanel": {
+      ".read": true,
+      ".write": "auth != null",
+      ".indexOn": ["schoolId"]
+    },
+
+    "notices": {
+      ".read": true,
+      ".write": "auth != null",
+      ".indexOn": ["schoolId"]
+    },
+
+    "examSessions": {
+      ".read": true,
+      ".write": "auth != null",
+      ".indexOn": ["schoolId", "targetClass"]
+    },
+
+    "storedResults": {
+      ".read": true,
+      ".write": "auth != null",
+      ".indexOn": ["schoolId", "studentId", "class", "examId"]
+    }
+  }
+}

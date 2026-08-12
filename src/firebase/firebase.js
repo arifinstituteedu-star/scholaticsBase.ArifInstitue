@@ -5,8 +5,10 @@ import {
   initializeFirestore,
   getFirestore,
   persistentLocalCache,
+  persistentMultipleTabManager,
   memoryLocalCache,
 } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
@@ -14,6 +16,7 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 const firebaseConfig = {
   apiKey: import.meta.env?.VITE_FIREBASE_API_KEY || "AIzaSyDiUUCM57IRmiBDbJxkSTZSRWQEHvbg8BI",
   authDomain: import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN || "scholasticbase-63086.firebaseapp.com",
+  databaseURL: import.meta.env?.VITE_FIREBASE_DATABASE_URL || "https://scholasticbase-63086-default-rtdb.firebaseio.com",
   projectId: import.meta.env?.VITE_FIREBASE_PROJECT_ID || "scholasticbase-63086",
   storageBucket: import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET || "scholasticbase-63086.firebasestorage.app",
   messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "350798346819",
@@ -31,17 +34,34 @@ if (missingKeys.length > 0) {
 // Singleton guard: reuse existing app if already initialized (prevents Vite HMR re-init crash)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firestore with persistent offline IndexedDB cache enabled by default.
+// Initialize Firestore with persistent offline IndexedDB cache enabled (with multi-tab support)
 let db;
 try {
   db = initializeFirestore(app, {
-    localCache: persistentLocalCache(),
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager(),
+    }),
   });
 } catch {
-  // Safe fallback if Firestore was already initialized (e.g. during Vite HMR hot reload)
-  db = getFirestore(app);
+  // Safe fallback if Firestore was already initialized or tab locking fails
+  try {
+    db = getFirestore(app);
+  } catch {
+    db = initializeFirestore(app, {
+      localCache: memoryLocalCache(),
+    });
+  }
 }
-export { db };
+
+// Initialize Realtime Database (RTDB)
+let rtdb;
+try {
+  rtdb = getDatabase(app);
+} catch (rtdbErr) {
+  console.warn('[Firebase RTDB] Could not initialize Realtime Database:', rtdbErr?.message || rtdbErr);
+}
+
+export { db, rtdb, getDatabase };
 
 export const storage = getStorage(app);
 export const auth = getAuth(app);

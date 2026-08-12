@@ -276,7 +276,13 @@ const ResultEntry = ({ classes = [], currentTeacherProfile = null, currentTeache
     return !hasMatchingAssignment;
   }, [readOnly, currentTeacherAssignments, classes, selectedClassData, selectedSection, selectedSubject]);
 
-  const groupOptions = selectedClassData?.groups || [];
+  const rawGroupOptions = selectedClassData?.groups || [];
+  const groupOptions = useMemo(() => {
+    return (Array.isArray(rawGroupOptions) ? rawGroupOptions : [])
+      .map((g) => (typeof g === 'object' && g !== null ? g.name || g.id || '' : String(g || '')))
+      .filter(Boolean);
+  }, [rawGroupOptions]);
+
   const configuredSubjects = selectedClassData?.groupSubjects?.[selectedSection] || [];
   const subjectOptions = configuredSubjects.length > 0 ? configuredSubjects : fallbackSubjects;
 
@@ -349,7 +355,13 @@ const ResultEntry = ({ classes = [], currentTeacherProfile = null, currentTeache
 
   useEffect(() => {
     const rosterForSelection = (selectedClassData?.students || [])
-      .filter((student) => !selectedSection || student.group === selectedSection)
+      .filter((student) => {
+        if (!selectedSection) return true;
+        const stGroup = typeof student?.group === 'object' && student.group !== null
+          ? student.group.name || student.group.id || ''
+          : String(student?.group || '');
+        return normalizeKey(stGroup) === normalizeKey(selectedSection);
+      })
       .map((student) => ({ ...student, marks: '', cqMarks: '', mcqMarks: '' }));
     setStudents(rosterForSelection);
     setFeedback('');

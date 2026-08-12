@@ -5,6 +5,7 @@ import useFormFields from '../hooks/useFormFields.js';
 import schoolHallway from '../school_hallway.png';
 import defaultLogo from '../greenfield_logo.png';
 import { useSchoolProfile } from '../context/SchoolProfileContext.jsx';
+import { useLanguage } from '../context/LanguageContext.jsx';
 import { MotivationalQuote } from './MotivationalQuote.jsx';
 import SafeImage from './SafeImage.jsx';
 import ScholasticBaseLogo from './ScholasticBaseLogo.jsx';
@@ -159,6 +160,7 @@ export default function LoginScreen() {
   const { role: routeRole } = useParams();
   const { user, signIn } = useAuth();
   const { schoolProfile } = useSchoolProfile();
+  const { lang, setLanguage, t } = useLanguage();
 
   useEffect(() => {
     if (user) {
@@ -333,13 +335,13 @@ export default function LoginScreen() {
         {/* Main Login Card */}
         <div className="login-card">
         <MotivationalQuote />
-        <h1 className="login-card-title">LOGIN TO YOUR PORTAL</h1>
+        <h1 className="login-card-title">{t('login.welcome', 'LOGIN TO YOUR PORTAL')}</h1>
 
         <form onSubmit={handleSubmit}>
 
           {/* Username / ID */}
           <div className="login-field-group">
-            <label className="login-label" htmlFor="userId">USERNAME / ID</label>
+            <label className="login-label" htmlFor="userId">{t('login.userId', 'USERNAME / ID')}</label>
             <div className="login-input-wrapper">
               <svg className="login-input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>

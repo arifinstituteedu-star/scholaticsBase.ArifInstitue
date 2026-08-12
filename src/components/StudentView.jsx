@@ -4,6 +4,7 @@ import { getResultsForStudent, subscribeToTeacherPanelData } from '../firebase/f
 import { getLocalResults, saveLocalResults } from '../firebase/localPersistence.js';
 import { getBangladeshGradeInfo } from '../utils/bangladeshGrading.js';
 import { useSchoolProfile } from '../context/SchoolProfileContext.jsx';
+import { useLanguage } from '../context/LanguageContext.jsx';
 import { SCHOOL_BRANCHES, getBranchKeyByClass, filterClassesByBranch, sortClasses, getActiveBranchKeys } from '../utils/schoolResolver.js';
 import PrintContainer from './PrintContainer.jsx';
 import { useViewMode } from '../context/ViewModeContext.jsx';
@@ -997,6 +998,7 @@ function DetailContent({
    ═════════════════════════════════════════════════════════════ */
 function StudentViewContent() {
   const { user, signOut } = useAuth();
+  const { lang, setLanguage, t } = useLanguage();
   const { effectiveUser } = useViewMode();
   const activeUser = effectiveUser || user;
   const { schoolProfile } = useSchoolProfile();

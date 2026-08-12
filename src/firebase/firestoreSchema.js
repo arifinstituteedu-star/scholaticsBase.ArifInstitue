@@ -107,7 +107,10 @@ export const ensureFirebaseAuth = async () => {
         try {
             await signInAnonymously(auth);
         } catch (anonErr) {
-            console.warn('[Firebase Auth] Anonymous auth sign-in warning:', anonErr?.message || anonErr);
+            // Silently ignore if Anonymous Auth provider is disabled in Firebase Console
+            if (anonErr?.code !== 'auth/configuration-not-found' && anonErr?.code !== 'auth/admin-restricted-operation') {
+                console.warn('[Firebase Auth Note] Anonymous sign-in unavailable:', anonErr?.message || anonErr);
+            }
         }
     }
     return auth?.currentUser;
@@ -132,11 +135,53 @@ export const getSchoolProfile = async (schoolId) => {
 
 export const saveSchoolProfile = (profile, schoolId) => {
     const targetId = schoolId || profile?.schoolId || profile?.schoolCode || profile?.eiinNumber;
-    if (targetId && targetId !== 'PROGGA_DEFAULT') {
-        return saveDocument(refs.school(targetId), withWriteMetadata(profile));
-    }
-    saveDocument(refs.school('PROGGA_DEFAULT'), withWriteMetadata(profile)).catch(() => {});
+    const safeTargetId = targetId && targetId !== 'PROGGA_DEFAULT' ? String(targetId).trim() : 'PROGGA_DEFAULT';
+    
+    // Save to isolated school doc AND default schoolProfile doc for full real-time snapshot sync
+    saveDocument(refs.school(safeTargetId), withWriteMetadata(profile)).catch(() => {});
     return saveDocument(refs.schoolProfile(), withWriteMetadata(profile));
+};
+
+export const subscribeToSchoolProfile = (onNext, onError, schoolId) => {
+    let unsubPrimary = null;
+    let unsubFallback = null;
+    let mounted = true;
+
+    const safeSchoolId = schoolId || 'PROGGA_DEFAULT';
+
+    const handleSnap = (snap) => {
+        if (!mounted) return;
+        if (snap && snap.exists()) {
+            const data = { id: snap.id, ...snap.data() };
+            if (typeof onNext === 'function') onNext(data);
+        }
+    };
+
+    const handleErr = (err) => {
+        if (!mounted) return;
+        console.error('[Firestore SchoolProfile Subscription Error]:', err);
+        if (typeof onError === 'function') onError(err);
+    };
+
+    ensureFirebaseAuth()
+        .then(() => {
+            if (!mounted) return;
+            try {
+                unsubPrimary = onSnapshot(refs.schoolProfile(), { includeMetadataChanges: true }, handleSnap, handleErr);
+                if (safeSchoolId && safeSchoolId !== 'PROGGA_DEFAULT') {
+                    unsubFallback = onSnapshot(refs.school(safeSchoolId), { includeMetadataChanges: true }, handleSnap, handleErr);
+                }
+            } catch (err) {
+                handleErr(err);
+            }
+        })
+        .catch((err) => handleErr(err));
+
+    return () => {
+        mounted = false;
+        if (typeof unsubPrimary === 'function') unsubPrimary();
+        if (typeof unsubFallback === 'function') unsubFallback();
+    };
 };
 
 /**
@@ -242,34 +287,39 @@ export const subscribeToNoticesFromFirestore = (callback, schoolId) => {
     const safeSchoolId = schoolId || 'PROGGA_DEFAULT';
     const targetRef = refs.notices(safeSchoolId);
     let mounted = true;
+    let unsubscribe = () => {};
 
-    try {
-        const unsubscribe = onSnapshot(
-            targetRef,
-            { includeMetadataChanges: false },
-            (snap) => {
-                if (!mounted) return;
-                if (snap.exists()) {
-                    const data = snap.data();
-                    if (Array.isArray(data?.notices)) {
-                        callback(data.notices);
+    ensureFirebaseAuth()
+        .catch(() => {})
+        .finally(() => {
+            if (!mounted) return;
+            try {
+                unsubscribe = onSnapshot(
+                    targetRef,
+                    { includeMetadataChanges: false },
+                    (snap) => {
+                        if (!mounted) return;
+                        if (snap.exists()) {
+                            const data = snap.data();
+                            if (Array.isArray(data?.notices)) {
+                                callback(data.notices);
+                            }
+                        }
+                    },
+                    (err) => {
+                        if (!mounted) return;
+                        console.error('[Firestore Notices Error]:', err);
                     }
-                }
-            },
-            (err) => {
-                if (!mounted) return;
-                console.warn('[Firestore Notices onSnapshot note]:', err?.message || err);
+                );
+            } catch (e) {
+                console.error('[Firestore Notices Init Error]:', e);
             }
-        );
+        });
 
-        return () => {
-            mounted = false;
-            unsubscribe();
-        };
-    } catch (e) {
-        console.warn('[Firestore Notices onSnapshot init note]:', e?.message || e);
-        return () => {};
-    }
+    return () => {
+        mounted = false;
+        unsubscribe();
+    };
 };
 
 export const getUserAccount = async (userId) => {
@@ -793,7 +843,7 @@ export const subscribeToExams = (onNext, onError, schoolId) => {
                 },
                 (err) => {
                     if (isCancelled) return;
-                    console.warn('[Firestore] Exams subscription warning:', err?.message || err);
+                    console.error('[Firestore Exams Subscription Error]:', err);
                     if (typeof onError === 'function') onError(err);
                     retryTimer = setTimeout(() => {
                         if (!isCancelled) startListener();
@@ -859,7 +909,7 @@ export const subscribeToResults = (onNext, onError, schoolId) => {
                 },
                 (err) => {
                     if (isCancelled) return;
-                    console.warn('[Firestore] Results subscription warning:', err?.message || err);
+                    console.error('[Firestore Results Subscription Error]:', err);
                     if (typeof onError === 'function') onError(err);
                     retryTimer = setTimeout(() => {
                         if (!isCancelled) startListener();
@@ -923,7 +973,7 @@ export const subscribeToTeacherPanelData = (onNext, onError, schoolId) => {
                 },
                 (err) => {
                     if (isCancelled) return;
-                    console.warn('[Firestore] TeacherPanel subscription warning:', err?.message || err);
+                    console.error('[Firestore TeacherPanel Subscription Error]:', err);
                     if (typeof onError === 'function') onError(err);
                     retryTimer = setTimeout(() => {
                         if (!isCancelled) startListener();
@@ -935,8 +985,13 @@ export const subscribeToTeacherPanelData = (onNext, onError, schoolId) => {
         }
     };
 
-    ensureFirebaseAuth().catch(() => {});
-    startListener();
+    ensureFirebaseAuth()
+        .then(() => {
+            if (!isCancelled) startListener();
+        })
+        .catch(() => {
+            if (!isCancelled) startListener();
+        });
 
     if (auth) {
         unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -963,12 +1018,7 @@ export const provisionNewSchoolPortal = async ({ googleUser, schoolDetails }) =>
     // Ensure active Firebase Auth session for Firestore security rule compliance
     let currentAuthUser = auth?.currentUser;
     if (!currentAuthUser && auth) {
-        try {
-            const anonCred = await signInAnonymously(auth);
-            currentAuthUser = anonCred.user;
-        } catch (anonErr) {
-            console.warn('[Firebase Auth] Anonymous auth initialization warning:', anonErr?.message || anonErr);
-        }
+        currentAuthUser = await ensureFirebaseAuth();
     }
 
     const effectiveUid = googleUser?.uid || currentAuthUser?.uid || googleUser?.userId || null;

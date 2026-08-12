@@ -44,6 +44,17 @@ if (typeof window !== 'undefined') {
     }
     return originalInsertBefore.apply(this, arguments);
   };
+
+  // Safe window.print polyfill for Electron Desktop
+  const nativeWindowPrint = window.print;
+  window.print = function (...args) {
+    if (window.electronAPI && typeof window.electronAPI.print === 'function') {
+      console.log('[Electron Print Engine] Intercepted print call, invoking native Electron printer with printBackground: true');
+      window.electronAPI.print({ printBackground: true });
+    } else if (typeof nativeWindowPrint === 'function') {
+      nativeWindowPrint.apply(window, args);
+    }
+  };
 }
 
 console.log('🚀 [STAGE 1/6] main.jsx script started executing');

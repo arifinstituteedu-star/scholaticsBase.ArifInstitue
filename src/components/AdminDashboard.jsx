@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useRealtimeSyncContext } from '../context/RealtimeSyncContext.jsx';
 import { useSchoolProfile } from '../context/SchoolProfileContext.jsx';
+import { useLanguage } from '../context/LanguageContext.jsx';
 import { SCHOOL_BRANCHES, getBranchKeyByClass, filterClassesByBranch, extractClassNumber, getResolvedBranches, getActiveBranchKeys, sortClasses } from '../utils/schoolResolver.js';
-import { subscribeToTeacherPanelData, saveTeacherPanelData, saveClassRecord, purgeResultsForStudents, getUserAccountFresh } from '../firebase/firestoreSchema.js';
+import { subscribeToTeacherPanelData, saveTeacherPanelData, saveClassRecord, purgeResultsForStudents, getUserAccountFresh, saveSchoolProfile as saveSchoolProfileDoc } from '../firebase/firestoreSchema.js';
 import { readStorage, writeStorage } from '../utils/schoolData.js';
 import useConfirm from '../hooks/useConfirm.js';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -481,6 +482,7 @@ export default function AdminDashboard() {
   const isViewerSuperAdmin = !!(user?.isSuperAdmin || viewerUid === '@@siam##' || String(user?.role || '').toLowerCase() === 'superadmin');
   const { liveUsersVersion } = useRealtimeSyncContext();
   const { schoolProfile: rawSchoolProfile, setSchoolProfile, resetSchoolProfile } = useSchoolProfile();
+  const { lang, setLanguage, t } = useLanguage();
   const schoolProfile = rawSchoolProfile || { schoolName: 'ScholasticBase', logo: '', adminEmail: 'admin@scholasticbase.edu' };
   const [activeTab, setActiveTab] = useState('overview'); // overview, accounts, teachers, students, exams, notices, fees, profile
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1075,8 +1077,6 @@ export default function AdminDashboard() {
       setClasses(nextClasses);
       writeStorage('teacherPanelClasses', nextClasses, activeSchoolId);
 
-      isRemoteUpdate.current = true;
-
       await saveTeacherPanelData({ classes: nextClasses, teachers }, activeSchoolId);
       await saveClassRecord(newClass, activeSchoolId);
 
@@ -1110,12 +1110,10 @@ export default function AdminDashboard() {
       purgeResultsForStudents(deletedStudents, activeSchoolId).catch(() => { });
     }
 
-    isRemoteUpdate.current = true;
-
     try {
       await saveTeacherPanelData({ classes: nextClasses, teachers }, activeSchoolId);
     } catch (err) {
-      console.warn('Could not delete class from Firestore:', err);
+      console.error('Could not delete class from Firestore:', err);
     }
   };
 
@@ -1274,6 +1272,7 @@ export default function AdminDashboard() {
       };
 
       setSchoolProfile(nextProfile);
+      await saveSchoolProfileDoc(nextProfile, activeSchoolId);
       try {
         window.localStorage.setItem('schoolName', updatedSchoolName);
         window.localStorage.setItem('schoolEiinNumber', updatedEiinNumber);
@@ -1283,7 +1282,7 @@ export default function AdminDashboard() {
       } catch { }
 
       setLogoFile(null);
-      setProfileStatus('Profile updated successfully.');
+      setProfileStatus('Profile & branding updated successfully across all devices.');
     } catch (err) {
       console.error('Error updating profile:', err);
       setProfileStatus(`Failed to update profile: ${err.message || 'Unknown error'}`);
@@ -1412,41 +1411,41 @@ export default function AdminDashboard() {
         </div>
         <nav className="tp-sidebar-nav">
           <button title="Overview" className={`tp-sidebar-nav-item ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabClick('overview')}>
-            <HomeIcon /> <span className="tp-sidebar-label">Overview</span>
+            <HomeIcon /> <span className="tp-sidebar-label">{lang === 'bn' ? 'সারসংক্ষেপ' : 'Overview'}</span>
           </button>
           <button title="User Logins" className={`tp-sidebar-nav-item ${activeTab === 'accounts' ? 'active' : ''}`} onClick={() => handleTabClick('accounts')}>
-            <KeyIcon /> <span className="tp-sidebar-label">User Logins</span>
+            <KeyIcon /> <span className="tp-sidebar-label">{lang === 'bn' ? 'ব্যবহারকারী অ্যাকাউন্টস' : 'User Logins'}</span>
           </button>
           <button title="Teachers" className={`tp-sidebar-nav-item ${activeTab === 'teachers' ? 'active' : ''}`} onClick={() => handleTabClick('teachers')}>
-            <TeacherIcon /> <span className="tp-sidebar-label">Teachers</span>
+            <TeacherIcon /> <span className="tp-sidebar-label">{lang === 'bn' ? 'শিক্ষক মণ্ডলী' : 'Teachers'}</span>
           </button>
           <button title="Students" className={`tp-sidebar-nav-item ${activeTab === 'students' ? 'active' : ''}`} onClick={() => handleTabClick('students')}>
-            <StudentIcon /> <span className="tp-sidebar-label">Students</span>
+            <StudentIcon /> <span className="tp-sidebar-label">{lang === 'bn' ? 'শিক্ষার্থী তালিকা' : 'Students'}</span>
           </button>
           <button title="Exams" className={`tp-sidebar-nav-item ${activeTab === 'exams' ? 'active' : ''}`} onClick={() => handleTabClick('exams')}>
-            <ExamIcon /> <span className="tp-sidebar-label">Exams</span>
+            <ExamIcon /> <span className="tp-sidebar-label">{lang === 'bn' ? 'পরীক্ষাসমূহ' : 'Exams'}</span>
           </button>
           <button title="Notices" className={`tp-sidebar-nav-item ${activeTab === 'notices' ? 'active' : ''}`} onClick={() => handleTabClick('notices')}>
-            <NoticeIcon /> <span className="tp-sidebar-label">Notices</span>
+            <NoticeIcon /> <span className="tp-sidebar-label">{lang === 'bn' ? 'নোটিশ বোর্ড' : 'Notices'}</span>
           </button>
           <button title="Fees Control" className={`tp-sidebar-nav-item ${activeTab === 'fees' ? 'active' : ''}`} onClick={() => handleTabClick('fees')}>
-            <FeeIcon /> <span className="tp-sidebar-label">Fees Control</span>
+            <FeeIcon /> <span className="tp-sidebar-label">{lang === 'bn' ? 'ফি ব্যবস্থাপনা' : 'Fees Control'}</span>
           </button>
           <button title="Profile Settings" className={`tp-sidebar-nav-item ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => handleTabClick('profile')}>
-            <ProfileIcon /> <span className="tp-sidebar-label">Profile Settings</span>
+            <ProfileIcon /> <span className="tp-sidebar-label">{lang === 'bn' ? 'পদ্ধতি সেটিংস' : 'Profile Settings'}</span>
           </button>
           <button title="Principal Panel" className="tp-sidebar-nav-item" onClick={() => navigate('/principal')}>
-            <span style={{ fontSize: 18 }}>🏛️</span> <span className="tp-sidebar-label">Principal Panel</span>
+            <span style={{ fontSize: 18 }}>🏛️</span> <span className="tp-sidebar-label">{lang === 'bn' ? 'প্রিন্সিপাল পোর্টাল' : 'Principal Panel'}</span>
           </button>
         </nav>
         <div className="tp-sidebar-bottom" style={{ marginTop: 'auto' }}>
           <div className="tp-sidebar-divider" />
           <div className="tp-sidebar-user-info" style={{ padding: '0 4px', marginBottom: 8 }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#1a2e4a', margin: '0 0 2px' }}>{user?.name || 'System Admin'}</p>
-            <p style={{ fontSize: 11.5, color: '#94a3b8', margin: 0, textTransform: 'capitalize' }}>Administrator</p>
+            <p style={{ fontSize: 11.5, color: '#94a3b8', margin: 0, textTransform: 'capitalize' }}>{lang === 'bn' ? 'এডমিনিস্ট্রেটর' : 'Administrator'}</p>
           </div>
           <button className="tp-sidebar-signout" onClick={signOut}>
-            <LogoutIcon /> <span className="tp-sidebar-label">Sign Out</span>
+            <LogoutIcon /> <span className="tp-sidebar-label">{lang === 'bn' ? 'সাইন আউট' : 'Sign Out'}</span>
           </button>
 
           <div className="tp-sidebar-footer" style={{ padding: '12px 4px 0', fontSize: 10.5, color: '#94a3b8', borderTop: '1px solid #e2e8f0', marginTop: 12, lineHeight: 1.5 }}>
@@ -1506,33 +1505,33 @@ export default function AdminDashboard() {
               <div className="ov-hero-top">
                 <div className="ov-hero-badge">
                   <span>⚡</span>
-                  <span>ADMINISTRATOR CONTROL PANEL</span>
+                  <span>{lang === 'bn' ? 'এডমিন কন্ট্রোল প্যানেল' : 'ADMINISTRATOR CONTROL PANEL'}</span>
                 </div>
                 <div className="ov-hero-badge" style={{ background: 'rgba(34, 197, 94, 0.18)', color: '#86efac', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
                   <span>●</span>
-                  <span>SYSTEM ONLINE</span>
+                  <span>{lang === 'bn' ? 'সিস্টেম অনলাইন' : 'SYSTEM ONLINE'}</span>
                 </div>
               </div>
 
               <h1 className="ov-hero-title">
-                {schoolProfile.schoolName || 'Institution'} Dashboard
+                {schoolProfile.schoolName || 'Institution'} {lang === 'bn' ? 'ড্যাশবোর্ড' : 'Dashboard'}
               </h1>
               <p className="ov-hero-subtitle">
-                Real-time directory monitoring, student rosters, exam schedules, and user credential controls.
+                {lang === 'bn' ? 'রিয়েল-টাইম নির্দেশিকা মনিটরিং, শিক্ষার্থী তালিকা, পরীক্ষার সময়সূচী এবং ব্যবহারকারীর তথ্য নিয়ন্ত্রণ।' : 'Real-time directory monitoring, student rosters, exam schedules, and user credential controls.'}
               </p>
 
               <div className="ov-hero-chips">
                 <div className="ov-chip">
                   <span>📍</span>
-                  <span>{schoolProfile?.location || 'Main Campus'}</span>
+                  <span>{schoolProfile?.location || (lang === 'bn' ? 'প্রধান ক্যাম্পাস' : 'Main Campus')}</span>
                 </div>
                 <div className="ov-chip">
                   <span>🏫</span>
-                  <span>{classes.length} Total Classes</span>
+                  <span>{classes.length} {lang === 'bn' ? 'মোট শ্রেণী' : 'Total Classes'}</span>
                 </div>
                 <div className="ov-chip">
                   <span>🔑</span>
-                  <span>{Object.keys(registeredAccounts).length} Active Credentials</span>
+                  <span>{Object.keys(registeredAccounts).length} {lang === 'bn' ? 'সক্রিয় ব্যবহারকারী' : 'Active Credentials'}</span>
                 </div>
               </div>
             </div>
@@ -1551,8 +1550,8 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <div className="ov-stat-value">{totalTeachers}</div>
-                  <div className="ov-stat-label">Total Teachers</div>
-                  <div className="ov-stat-tag">✓ Faculty Roster</div>
+                  <div className="ov-stat-label">{lang === 'bn' ? 'মোট শিক্ষক' : 'Total Teachers'}</div>
+                  <div className="ov-stat-tag">✓ {lang === 'bn' ? 'শিক্ষক তালিকা' : 'Faculty Roster'}</div>
                 </div>
               </div>
 
@@ -1568,8 +1567,8 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <div className="ov-stat-value">{totalStudents}</div>
-                  <div className="ov-stat-label">Total Students</div>
-                  <div className="ov-stat-tag">● Active Directory</div>
+                  <div className="ov-stat-label">{lang === 'bn' ? 'মোট শিক্ষার্থী' : 'Total Students'}</div>
+                  <div className="ov-stat-tag">● {lang === 'bn' ? 'সক্রিয় ডিরেক্টরি' : 'Active Directory'}</div>
                 </div>
               </div>
 
@@ -1585,8 +1584,8 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <div className="ov-stat-value">{totalExams}</div>
-                  <div className="ov-stat-label">Exams Scheduled</div>
-                  <div className="ov-stat-tag">📝 Test Schedules</div>
+                  <div className="ov-stat-label">{lang === 'bn' ? 'নির্ধারিত পরীক্ষা' : 'Exams Scheduled'}</div>
+                  <div className="ov-stat-tag">📝 {lang === 'bn' ? 'পরীক্ষার সময়সূচী' : 'Test Schedules'}</div>
                 </div>
               </div>
 
@@ -1602,8 +1601,8 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <div className="ov-stat-value">{Object.keys(registeredAccounts).length}</div>
-                  <div className="ov-stat-label">Registered Logins</div>
-                  <div className="ov-stat-tag">⚡ Provision Credentials</div>
+                  <div className="ov-stat-label">{lang === 'bn' ? 'নিবন্ধিত অ্যাকাউন্ট' : 'Registered Logins'}</div>
+                  <div className="ov-stat-tag">⚡ {lang === 'bn' ? 'ব্যবহারকারী তথ্য' : 'Provision Credentials'}</div>
                 </div>
               </div>
             </div>
@@ -3125,14 +3124,14 @@ export default function AdminDashboard() {
               <div className="tp-greeting">
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)', width: 'fit-content', marginBottom: 4 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#ffffff', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                    ⚙️ Institution Branding & Settings
+                    ⚙️ {lang === 'bn' ? 'প্রতিষ্ঠানের সেটিংস ও ব্রান্ডিং' : 'Institution Branding & Settings'}
                   </span>
                 </div>
                 <h1 style={{ fontSize: 'clamp(18px, 3.5vw, 26px)', fontWeight: 800, margin: 0, color: '#ffffff' }}>
-                  Admin Profile & School Branding
+                  {lang === 'bn' ? 'এডমিন প্রোফাইল ও স্কুল সেটিংস' : 'Admin Profile & School Branding'}
                 </h1>
                 <p style={{ fontSize: 'clamp(12px, 2vw, 13.5px)', margin: '4px 0 0', opacity: 0.9, color: '#e2e8f0' }}>
-                  Manage your institutional crest, contact info, language, and active branch structures.
+                  {lang === 'bn' ? 'আপনার প্রতিষ্ঠানের নাম, যোগাযোগের বিবরণী, ভাষা এবং বিভিন্ন শাখার পরিচালনা করুন।' : 'Manage your institutional crest, contact info, language, and active branch structures.'}
                 </p>
               </div>
 
@@ -3178,10 +3177,10 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
-                        School Identity & Crest
+                        {lang === 'bn' ? 'প্রতিষ্ঠানের পরিচয় ও লোগো' : 'School Identity & Crest'}
                       </h3>
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>
-                        Public institution name, address, EIIN number, and official crest logo.
+                        {lang === 'bn' ? 'প্রতিষ্ঠানের নাম, ঠিকানা, ইআইআইএন নম্বর এবং অফিসিয়াল লোগো।' : 'Public institution name, address, EIIN number, and official crest logo.'}
                       </p>
                     </div>
                   </div>
@@ -3189,14 +3188,14 @@ export default function AdminDashboard() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 14 }}>
                     <div className="tp-form-group">
                       <label className="tp-form-label" style={{ fontWeight: 700, fontSize: 13, color: '#334155' }}>
-                        School Name <span style={{ color: '#dc2626' }}>*</span>
+                        {lang === 'bn' ? 'প্রতিষ্ঠানের নাম' : 'School Name'} <span style={{ color: '#dc2626' }}>*</span>
                       </label>
                       <input
                         className="tp-form-input"
                         type="text"
                         value={profileForm.schoolName}
                         onChange={e => setProfileForm({ ...profileForm, schoolName: e.target.value })}
-                        placeholder="Enter full school name"
+                        placeholder={lang === 'bn' ? 'প্রতিষ্ঠানের পুরো নাম লিখুন' : 'Enter full school name'}
                         required
                         style={{ borderRadius: 8, padding: '9px 12px', fontSize: 13.5 }}
                       />
@@ -3204,7 +3203,7 @@ export default function AdminDashboard() {
 
                     <div className="tp-form-group">
                       <label className="tp-form-label" style={{ fontWeight: 700, fontSize: 13, color: '#334155' }}>
-                        EIIN Number
+                        {lang === 'bn' ? 'ইআইআইএন নম্বর' : 'EIIN Number'}
                       </label>
                       <input
                         className="tp-form-input"
@@ -3219,14 +3218,14 @@ export default function AdminDashboard() {
 
                   <div className="tp-form-group" style={{ marginTop: 12 }}>
                     <label className="tp-form-label" style={{ fontWeight: 700, fontSize: 13, color: '#334155' }}>
-                      School Location / Address
+                      {lang === 'bn' ? 'প্রতিষ্ঠানের ঠিকানা / অবস্থান' : 'School Location / Address'}
                     </label>
                     <input
                       className="tp-form-input"
                       type="text"
                       value={profileForm.location || ''}
                       onChange={e => setProfileForm({ ...profileForm, location: e.target.value })}
-                      placeholder="e.g. Belabo, Narsingdi, Dhaka, Bangladesh"
+                      placeholder={lang === 'bn' ? 'যেমন: বেলাব, নরসিংদী, ঢাকা, বাংলাদেশ' : 'e.g. Belabo, Narsingdi, Dhaka, Bangladesh'}
                       style={{ borderRadius: 8, padding: '9px 12px', fontSize: 13.5 }}
                     />
                   </div>
@@ -3238,13 +3237,13 @@ export default function AdminDashboard() {
                         <img src={profileForm.logo} alt="School crest" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                       </div>
                       <div>
-                        <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>Institutional Crest / Logo</div>
-                        <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>Upload high quality PNG or JPG image for app branding.</div>
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>{lang === 'bn' ? 'প্রাতিষ্ঠানিক লোগো' : 'Institutional Crest / Logo'}</div>
+                        <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>{lang === 'bn' ? 'ব্র্যান্ডিংয়ের জন্য উচ্চমানের লোগো (PNG / JPG) আপলোড করুন।' : 'Upload high quality PNG or JPG image for app branding.'}</div>
                       </div>
                     </div>
 
                     <label style={{ background: '#2563eb', color: '#ffffff', padding: '8px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px rgba(37,99,235,0.25)', transition: 'all 0.2s ease' }}>
-                      📷 Upload Crest
+                      {lang === 'bn' ? '📷 লোগো আপলোড' : '📷 Upload Crest'}
                       <input type="file" accept="image/*" onChange={handleLogoChange} style={{ display: 'none' }} />
                     </label>
                   </div>
@@ -3258,32 +3257,32 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
-                        Administrator Contact Info
+                        {lang === 'bn' ? 'প্রশাসকের যোগাযোগের বিবরণী' : 'Administrator Contact Info'}
                       </h3>
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>
-                        Primary admin profile details used for system communications and credentials.
+                        {lang === 'bn' ? 'সিস্টেম পরিচিতি ও যোগাযোগের জন্য প্রধান প্রশাসকের বিবরণী।' : 'Primary admin profile details used for system communications and credentials.'}
                       </p>
                     </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
                     <div className="tp-form-group">
-                      <label className="tp-form-label" style={{ fontWeight: 700, fontSize: 13, color: '#334155' }}>Admin Full Name</label>
+                      <label className="tp-form-label" style={{ fontWeight: 700, fontSize: 13, color: '#334155' }}>{lang === 'bn' ? 'এডমিনের পুরো নাম' : 'Admin Full Name'}</label>
                       <input className="tp-form-input" type="text" value={profileForm.adminName} onChange={e => setProfileForm({ ...profileForm, adminName: e.target.value })} placeholder="e.g. Principal Nazmul Alam" style={{ borderRadius: 8, padding: '9px 12px', fontSize: 13.5 }} />
                     </div>
 
                     <div className="tp-form-group">
-                      <label className="tp-form-label" style={{ fontWeight: 700, fontSize: 13, color: '#334155' }}>Admin Role / Title</label>
+                      <label className="tp-form-label" style={{ fontWeight: 700, fontSize: 13, color: '#334155' }}>{lang === 'bn' ? 'এডমিনের পদবী / পদ' : 'Admin Role / Title'}</label>
                       <input className="tp-form-input" type="text" value={profileForm.adminTitle} onChange={e => setProfileForm({ ...profileForm, adminTitle: e.target.value })} placeholder="e.g. Principal / Administrator" style={{ borderRadius: 8, padding: '9px 12px', fontSize: 13.5 }} />
                     </div>
 
                     <div className="tp-form-group">
-                      <label className="tp-form-label" style={{ fontWeight: 700, fontSize: 13, color: '#334155' }}>Admin Email</label>
+                      <label className="tp-form-label" style={{ fontWeight: 700, fontSize: 13, color: '#334155' }}>{lang === 'bn' ? 'এডমিন ইমেইল' : 'Admin Email'}</label>
                       <input className="tp-form-input" type="email" value={profileForm.adminEmail} onChange={e => setProfileForm({ ...profileForm, adminEmail: e.target.value })} placeholder="admin@school.edu" style={{ borderRadius: 8, padding: '9px 12px', fontSize: 13.5 }} />
                     </div>
 
                     <div className="tp-form-group">
-                      <label className="tp-form-label" style={{ fontWeight: 700, fontSize: 13, color: '#334155' }}>Admin Phone</label>
+                      <label className="tp-form-label" style={{ fontWeight: 700, fontSize: 13, color: '#334155' }}>{lang === 'bn' ? 'এডমিন ফোন নম্বর' : 'Admin Phone'}</label>
                       <input className="tp-form-input" type="text" value={profileForm.adminPhone} onChange={e => setProfileForm({ ...profileForm, adminPhone: e.target.value })} placeholder="01700000000" style={{ borderRadius: 8, padding: '9px 12px', fontSize: 13.5 }} />
                     </div>
                   </div>
@@ -3297,10 +3296,10 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
-                        System Language Preference
+                        {lang === 'bn' ? 'সিস্টেম অ্যাপ্লিকেশন ভাষা' : 'System Language Preference'}
                       </h3>
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>
-                        Default display language for student panels, routine views, and report cards.
+                        {lang === 'bn' ? 'স্টুডেন্ট পোর্টাল, রুটিন এবং রিপোর্ট কার্ডে প্রদর্শিত প্রাতিষ্ঠানিক ভাষা।' : 'Default display language for student panels, routine views, and report cards.'}
                       </p>
                     </div>
                   </div>
@@ -3308,12 +3307,16 @@ export default function AdminDashboard() {
                   <div className="adm-lang-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
                     {/* English Option */}
                     <div
-                      onClick={() => setProfileForm({ ...profileForm, language: 'en' })}
+                      onClick={() => {
+                        setLanguage('en');
+                        setProfileForm(prev => ({ ...prev, language: 'en' }));
+                        setSchoolProfile({ language: 'en' });
+                      }}
                       style={{
                         padding: '14px 16px',
                         borderRadius: 12,
-                        border: (!profileForm.language || profileForm.language === 'en') ? '2px solid #2563eb' : '1px solid #cbd5e1',
-                        background: (!profileForm.language || profileForm.language === 'en') ? '#eff6ff' : '#ffffff',
+                        border: (lang === 'en' || profileForm.language === 'en') ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                        background: (lang === 'en' || profileForm.language === 'en') ? '#eff6ff' : '#ffffff',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -3325,22 +3328,26 @@ export default function AdminDashboard() {
                         <span style={{ fontSize: 24 }}>🇬🇧</span>
                         <div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a' }}>English</div>
-                          <div style={{ fontSize: 11.5, color: '#64748b' }}>Default International</div>
+                          <div style={{ fontSize: 11.5, color: '#64748b' }}>{lang === 'bn' ? 'আন্তর্জাতিক ভাষা' : 'Default International'}</div>
                         </div>
                       </div>
-                      {(!profileForm.language || profileForm.language === 'en') && (
+                      {(lang === 'en' || profileForm.language === 'en') && (
                         <span style={{ background: '#2563eb', color: '#ffffff', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900 }}>✓</span>
                       )}
                     </div>
 
                     {/* Bengali Option */}
                     <div
-                      onClick={() => setProfileForm({ ...profileForm, language: 'bn' })}
+                      onClick={() => {
+                        setLanguage('bn');
+                        setProfileForm(prev => ({ ...prev, language: 'bn' }));
+                        setSchoolProfile({ language: 'bn' });
+                      }}
                       style={{
                         padding: '14px 16px',
                         borderRadius: 12,
-                        border: profileForm.language === 'bn' ? '2px solid #16a34a' : '1px solid #cbd5e1',
-                        background: profileForm.language === 'bn' ? '#f0fdf4' : '#ffffff',
+                        border: (lang === 'bn' || profileForm.language === 'bn') ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                        background: (lang === 'bn' || profileForm.language === 'bn') ? '#f0fdf4' : '#ffffff',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -3352,10 +3359,10 @@ export default function AdminDashboard() {
                         <span style={{ fontSize: 24 }}>🇧🇩</span>
                         <div>
                           <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a' }}>বাংলা (Bengali)</div>
-                          <div style={{ fontSize: 11.5, color: '#64748b' }}>জাতীয় ভাষা ইন্টারফেস</div>
+                          <div style={{ fontSize: 11.5, color: '#64748b' }}>{lang === 'bn' ? 'জাতীয় ভাষা ইন্টারফেস (সক্রিয়)' : 'জাতীয় ভাষা ইন্টারফেস'}</div>
                         </div>
                       </div>
-                      {profileForm.language === 'bn' && (
+                      {(lang === 'bn' || profileForm.language === 'bn') && (
                         <span style={{ background: '#16a34a', color: '#ffffff', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900 }}>✓</span>
                       )}
                     </div>
@@ -3370,10 +3377,10 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
-                        Institutional Branches & Active Selection
+                        {lang === 'bn' ? 'প্রতিষ্ঠানের শাখা ও নাম নির্ধারণ' : 'Institutional Branches & Active Selection'}
                       </h3>
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>
-                        Activate branches and customize display names shown across student rosters & billing portals.
+                        {lang === 'bn' ? 'প্রতিষ্ঠানের বিভিন্ন শাখা সক্রিয় করুন এবং শিক্ষার্থীদের বিলিং পোর্টালে প্রদর্শিত নাম পরিবর্তন করুন।' : 'Activate branches and customize display names shown across student rosters & billing portals.'}
                       </p>
                     </div>
                   </div>
@@ -3386,7 +3393,7 @@ export default function AdminDashboard() {
                         <div style={{ background: isPrimaryActive ? '#f0fdf4' : '#f8fafc', padding: 14, borderRadius: 12, border: `1.5px solid ${isPrimaryActive ? '#bbf7d0' : '#e2e8f0'}`, transition: 'all 0.2s' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                             <label style={{ color: isPrimaryActive ? '#166534' : '#64748b', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, fontSize: 13, margin: 0 }}>
-                              🏫 Primary Branch
+                              🏫 {lang === 'bn' ? 'প্রাথমিক শাখা' : 'Primary Branch'}
                             </label>
                             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', color: isPrimaryActive ? '#166534' : '#64748b' }}>
                               <input
@@ -3395,14 +3402,14 @@ export default function AdminDashboard() {
                                 onChange={(e) => handleToggleBranchActive('primary', e.target.checked)}
                                 style={{ accentColor: '#16a34a', width: 17, height: 17, cursor: 'pointer' }}
                               />
-                              {isPrimaryActive ? 'Active' : 'Disabled'}
+                              {isPrimaryActive ? (lang === 'bn' ? 'সক্রিয়' : 'Active') : (lang === 'bn' ? 'নিষ্ক্রিয়' : 'Disabled')}
                             </label>
                           </div>
                           <input
                             className="tp-form-input"
                             type="text"
                             disabled={!isPrimaryActive}
-                            value={profileForm.branchNames?.primary ?? 'Primary School'}
+                            value={profileForm.branchNames?.primary ?? (lang === 'bn' ? 'প্রাথমিক বিদ্যালয়' : 'Primary School')}
                             onChange={e => setProfileForm({
                               ...profileForm,
                               branchNames: { ...(profileForm.branchNames || {}), primary: e.target.value }
@@ -3411,7 +3418,7 @@ export default function AdminDashboard() {
                             style={{ background: isPrimaryActive ? '#ffffff' : '#f1f5f9', borderRadius: 8, fontSize: 13 }}
                           />
                           <span style={{ fontSize: 11, color: '#64748b', marginTop: 6, display: 'block', fontWeight: 500 }}>
-                            Classes Nursery – Class 5
+                            {lang === 'bn' ? 'প্লে/নার্সারী – ৫ম শ্রেণী' : 'Classes Nursery – Class 5'}
                           </span>
                         </div>
                       );
@@ -3424,7 +3431,7 @@ export default function AdminDashboard() {
                         <div style={{ background: isSecondaryActive ? '#eff6ff' : '#f8fafc', padding: 14, borderRadius: 12, border: `1.5px solid ${isSecondaryActive ? '#bfdbfe' : '#e2e8f0'}`, transition: 'all 0.2s' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                             <label style={{ color: isSecondaryActive ? '#1e40af' : '#64748b', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, fontSize: 13, margin: 0 }}>
-                              🎓 High School Branch
+                              🎓 {lang === 'bn' ? 'উচ্চ বিদ্যালয় শাখা' : 'High School Branch'}
                             </label>
                             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', color: isSecondaryActive ? '#1e40af' : '#64748b' }}>
                               <input
@@ -3433,14 +3440,14 @@ export default function AdminDashboard() {
                                 onChange={(e) => handleToggleBranchActive('secondary', e.target.checked)}
                                 style={{ accentColor: '#2563eb', width: 17, height: 17, cursor: 'pointer' }}
                               />
-                              {isSecondaryActive ? 'Active' : 'Disabled'}
+                              {isSecondaryActive ? (lang === 'bn' ? 'সক্রিয়' : 'Active') : (lang === 'bn' ? 'নিষ্ক্রিয়' : 'Disabled')}
                             </label>
                           </div>
                           <input
                             className="tp-form-input"
                             type="text"
                             disabled={!isSecondaryActive}
-                            value={profileForm.branchNames?.secondary ?? 'High School'}
+                            value={profileForm.branchNames?.secondary ?? (lang === 'bn' ? 'উচ্চ বিদ্যালয়' : 'High School')}
                             onChange={e => setProfileForm({
                               ...profileForm,
                               branchNames: { ...(profileForm.branchNames || {}), secondary: e.target.value }
@@ -3449,7 +3456,7 @@ export default function AdminDashboard() {
                             style={{ background: isSecondaryActive ? '#ffffff' : '#f1f5f9', borderRadius: 8, fontSize: 13 }}
                           />
                           <span style={{ fontSize: 11, color: '#64748b', marginTop: 6, display: 'block', fontWeight: 500 }}>
-                            Classes Class 6 – Class 10
+                            {lang === 'bn' ? '৬ষ্ঠ – ১০ম শ্রেণী' : 'Classes Class 6 – Class 10'}
                           </span>
                         </div>
                       );
@@ -3462,7 +3469,7 @@ export default function AdminDashboard() {
                         <div style={{ background: isCollegeActive ? '#f3e8ff' : '#f8fafc', padding: 14, borderRadius: 12, border: `1.5px solid ${isCollegeActive ? '#ddd6fe' : '#e2e8f0'}`, transition: 'all 0.2s' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                             <label style={{ color: isCollegeActive ? '#6b21a8' : '#64748b', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, fontSize: 13, margin: 0 }}>
-                              🏛️ College Branch
+                              🏛️ {lang === 'bn' ? 'কলেজ শাখা' : 'College Branch'}
                             </label>
                             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', color: isCollegeActive ? '#6b21a8' : '#64748b' }}>
                               <input
@@ -3471,14 +3478,14 @@ export default function AdminDashboard() {
                                 onChange={(e) => handleToggleBranchActive('college', e.target.checked)}
                                 style={{ accentColor: '#7c3aed', width: 17, height: 17, cursor: 'pointer' }}
                               />
-                              {isCollegeActive ? 'Active' : 'Disabled'}
+                              {isCollegeActive ? (lang === 'bn' ? 'সক্রিয়' : 'Active') : (lang === 'bn' ? 'নিষ্ক্রিয়' : 'Disabled')}
                             </label>
                           </div>
                           <input
                             className="tp-form-input"
                             type="text"
                             disabled={!isCollegeActive}
-                            value={profileForm.branchNames?.college ?? 'College'}
+                            value={profileForm.branchNames?.college ?? (lang === 'bn' ? 'মহাবিদ্যালয়' : 'College')}
                             onChange={e => setProfileForm({
                               ...profileForm,
                               branchNames: { ...(profileForm.branchNames || {}), college: e.target.value }
@@ -3487,7 +3494,7 @@ export default function AdminDashboard() {
                             style={{ background: isCollegeActive ? '#ffffff' : '#f1f5f9', borderRadius: 8, fontSize: 13 }}
                           />
                           <span style={{ fontSize: 11, color: '#64748b', marginTop: 6, display: 'block', fontWeight: 500 }}>
-                            Classes Class 11 – Class 12
+                            {lang === 'bn' ? 'একাদশ – দ্বাদশ শ্রেণী' : 'Classes Class 11 – Class 12'}
                           </span>
                         </div>
                       );
@@ -3504,7 +3511,7 @@ export default function AdminDashboard() {
                       style={{ background: '#16a34a', padding: '10px 24px', borderRadius: 8, fontSize: 13.5, fontWeight: 800, opacity: submittingProfile ? 0.7 : 1, boxShadow: '0 2px 8px rgba(22,163,74,0.25)' }}
                       disabled={submittingProfile}
                     >
-                      {submittingProfile ? 'Saving Changes...' : '💾 Save Profile & Branding'}
+                      {submittingProfile ? (lang === 'bn' ? 'সংরক্ষণ হচ্ছে...' : 'Saving Changes...') : (lang === 'bn' ? '💾 তথ্য সংরক্ষণ করুন' : '💾 Save Profile & Branding')}
                     </button>
 
                     <button
@@ -3514,7 +3521,7 @@ export default function AdminDashboard() {
                       style={{ marginTop: 0, padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600 }}
                       disabled={submittingProfile}
                     >
-                      Reset Defaults
+                      {lang === 'bn' ? 'ডিফল্ট রিসেট করুন' : 'Reset Defaults'}
                     </button>
                   </div>
 

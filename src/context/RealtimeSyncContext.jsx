@@ -35,7 +35,7 @@ import {
 } from 'react';
 import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/firebase.js';
-import { COLLECTIONS, SCHOOL_PROFILE_DOC_ID } from '../firebase/firestoreSchema.js';
+import { COLLECTIONS, SCHOOL_PROFILE_DOC_ID, ensureFirebaseAuth, subscribeToSchoolProfile } from '../firebase/firestoreSchema.js';
 
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -206,37 +206,43 @@ export function RealtimeSyncProvider({ children }) {
     setUserSyncStatus(SYNC_STATUS.CONNECTING);
 
     let mounted = true;
+    let unsubscribe = () => {};
 
-    const unsubscribe = onSnapshot(
-      userDocRef,
-      { includeMetadataChanges: true },
-      (snap) => {
+    ensureFirebaseAuth()
+      .catch(() => {})
+      .finally(() => {
         if (!mounted) return;
-        if (!snap.exists()) {
-          // Document was deleted from Firestore server!
-          setLiveUserAccount({ _deleted: true, userId: activeUserId });
-          setUserSyncStatus(SYNC_STATUS.LIVE);
-          return;
-        }
-        const data = snapToData(snap);
-        setLiveUserAccount(data);
-        setCachedUserAccount(activeUserId, data);
-        setUserSyncStatus(
-          snap.metadata.fromCache ? SYNC_STATUS.CACHED : SYNC_STATUS.LIVE
+        unsubscribe = onSnapshot(
+          userDocRef,
+          { includeMetadataChanges: true },
+          (snap) => {
+            if (!mounted) return;
+            if (!snap.exists()) {
+              // Document was deleted from Firestore server!
+              setLiveUserAccount({ _deleted: true, userId: activeUserId });
+              setUserSyncStatus(SYNC_STATUS.LIVE);
+              return;
+            }
+            const data = snapToData(snap);
+            setLiveUserAccount(data);
+            setCachedUserAccount(activeUserId, data);
+            setUserSyncStatus(
+              snap.metadata.fromCache ? SYNC_STATUS.CACHED : SYNC_STATUS.LIVE
+            );
+          },
+          (err) => {
+            if (!mounted) return;
+            const code = String(err?.code || '').toLowerCase();
+            if (code === 'permission-denied' || String(err?.message || '').toLowerCase().includes('permission')) {
+              // Account is local-only — disable cloud sync gracefully
+              setUserSyncStatus(SYNC_STATUS.IDLE);
+            } else {
+              console.warn('[RealtimeSyncContext] User account listener note:', err?.message || err);
+              setUserSyncStatus(SYNC_STATUS.ERROR);
+            }
+          }
         );
-      },
-      (err) => {
-        if (!mounted) return;
-        const code = String(err?.code || '').toLowerCase();
-        if (code === 'permission-denied' || String(err?.message || '').toLowerCase().includes('permission')) {
-          // Account is local-only — disable cloud sync gracefully
-          setUserSyncStatus(SYNC_STATUS.IDLE);
-        } else {
-          console.warn('[RealtimeSyncContext] User account listener note:', err?.message || err);
-          setUserSyncStatus(SYNC_STATUS.ERROR);
-        }
-      }
-    );
+      });
 
     return () => {
       mounted = false;
@@ -254,45 +260,29 @@ export function RealtimeSyncProvider({ children }) {
       setLiveSchoolProfile(cachedProf);
     }
 
-    const profileDocRef = doc(db, COLLECTIONS.schoolData, SCHOOL_PROFILE_DOC_ID);
     setProfileSyncStatus(SYNC_STATUS.CONNECTING);
 
-    let mounted = true;
-    let unsubscribe = () => {};
+    const activeSchoolId = cachedProf?.schoolId || cachedProf?.schoolCode || cachedProf?.eiinNumber || 'PROGGA_DEFAULT';
 
-    try {
-      unsubscribe = onSnapshot(
-        profileDocRef,
-        { includeMetadataChanges: true },
-        (snap) => {
-          if (!mounted) return;
-          const data = snapToData(snap);
-          if (data) {
-            setLiveSchoolProfile(data);
-            setCachedProfile(data);
-          }
-          setProfileSyncStatus(
-            snap.metadata.fromCache ? SYNC_STATUS.CACHED : SYNC_STATUS.LIVE
-          );
-        },
-        (err) => {
-          if (!mounted) return;
-          const code = String(err?.code || '').toLowerCase();
-          if (code === 'permission-denied' || String(err?.message || '').toLowerCase().includes('permission')) {
-            setProfileSyncStatus(SYNC_STATUS.IDLE);
-          } else {
-            console.warn('[RealtimeSyncContext] School profile listener note:', err?.message || err);
-            setProfileSyncStatus(SYNC_STATUS.ERROR);
-          }
-        }
-      );
-    } catch (initErr) {
-      setProfileSyncStatus(SYNC_STATUS.IDLE);
-    }
+    const unsubscribe = subscribeToSchoolProfile(
+      (data) => {
+        if (!data) return;
+        setLiveSchoolProfile((prev) => {
+          const merged = { ...prev, ...data };
+          setCachedProfile(merged);
+          return merged;
+        });
+        setProfileSyncStatus(SYNC_STATUS.LIVE);
+      },
+      (err) => {
+        console.error('[RealtimeSyncContext] School profile listener error:', err);
+        setProfileSyncStatus(SYNC_STATUS.ERROR);
+      },
+      activeSchoolId
+    );
 
     return () => {
-      mounted = false;
-      unsubscribe();
+      if (typeof unsubscribe === 'function') unsubscribe();
     };
   }, []);
 
@@ -306,33 +296,39 @@ export function RealtimeSyncProvider({ children }) {
 
     usersListenerActive.current = true;
     let mounted = true;
+    let unsubscribe = () => {};
 
     const usersCollectionRef = collection(db, COLLECTIONS.users);
 
-    const unsubscribe = onSnapshot(
-      usersCollectionRef,
-      { includeMetadataChanges: false },
-      (snapshot) => {
+    ensureFirebaseAuth()
+      .catch(() => {})
+      .finally(() => {
         if (!mounted) return;
+        unsubscribe = onSnapshot(
+          usersCollectionRef,
+          { includeMetadataChanges: false },
+          (snapshot) => {
+            if (!mounted) return;
 
-        const freshDocs = [];
-        snapshot.forEach((docSnap) => {
-          if (docSnap.exists()) {
-            freshDocs.push({ id: docSnap.id, ...docSnap.data() });
+            const freshDocs = [];
+            snapshot.forEach((docSnap) => {
+              if (docSnap.exists()) {
+                freshDocs.push({ id: docSnap.id, ...docSnap.data() });
+              }
+            });
+
+            mergeUsersIntoLocalStorage(freshDocs);
+            setLiveUsersVersion((v) => v + 1);
+          },
+          (err) => {
+            if (!mounted) return;
+            const code = String(err?.code || '').toLowerCase();
+            if (code !== 'permission-denied' && !String(err?.message || '').toLowerCase().includes('permission')) {
+              console.warn('[RealtimeSyncContext] Users collection listener note:', err?.message || err);
+            }
           }
-        });
-
-        mergeUsersIntoLocalStorage(freshDocs);
-        setLiveUsersVersion((v) => v + 1);
-      },
-      (err) => {
-        if (!mounted) return;
-        const code = String(err?.code || '').toLowerCase();
-        if (code !== 'permission-denied' && !String(err?.message || '').toLowerCase().includes('permission')) {
-          console.warn('[RealtimeSyncContext] Users collection listener note:', err?.message || err);
-        }
-      }
-    );
+        );
+      });
 
     return () => {
       mounted = false;

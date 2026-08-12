@@ -83,7 +83,11 @@ export const PrintContainer = ({
       return;
     }
     if (typeof window !== 'undefined') {
-      window.print();
+      if (window.electronAPI?.print) {
+        window.electronAPI.print({ printBackground: true });
+      } else {
+        window.print();
+      }
     }
   };
 

@@ -19,6 +19,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { onSnapshot } from 'firebase/firestore';
+import { ensureFirebaseAuth } from '../firebase/firestoreSchema.js';
 
 /**
  * Normalise a Firestore snapshot into a plain JS object.
@@ -104,6 +105,7 @@ export function useRealtimeSync(ref, options = {}) {
 
     let mounted = true;
     let debounceTimer = null;
+    let unsubscribe = () => {};
 
     // Check device cache on ref change
     const cached = storageKey ? loadDeviceCache(storageKey) : null;
@@ -113,49 +115,54 @@ export function useRealtimeSync(ref, options = {}) {
       setState((prev) => ({ ...prev, loading: true, error: null }));
     }
 
-    const unsubscribe = onSnapshot(
-      ref,
-      { includeMetadataChanges: false },
-      (snapshot) => {
+    ensureFirebaseAuth()
+      .catch(() => {})
+      .finally(() => {
         if (!mounted) return;
+        unsubscribe = onSnapshot(
+          ref,
+          { includeMetadataChanges: false },
+          (snapshot) => {
+            if (!mounted) return;
 
-        const data = normaliseSnapshot(snapshot);
+            const data = normaliseSnapshot(snapshot);
 
-        // Auto-persist snapshot updates into device local storage cache
-        if (storageKey) {
-          saveDeviceCache(storageKey, data);
-        }
+            // Auto-persist snapshot updates into device local storage cache
+            if (storageKey) {
+              saveDeviceCache(storageKey, data);
+            }
 
-        // Debounce: clear any pending update before scheduling a new one
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          if (!mounted) return;
-          setState({ data, loading: false, error: null, isStale: false });
-          if (onUpdateRef.current) {
-            try {
-              onUpdateRef.current(data);
-            } catch (callbackErr) {
-              console.error('[useRealtimeSync] onUpdate callback threw:', callbackErr);
+            // Debounce: clear any pending update before scheduling a new one
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+              if (!mounted) return;
+              setState({ data, loading: false, error: null, isStale: false });
+              if (onUpdateRef.current) {
+                try {
+                  onUpdateRef.current(data);
+                } catch (callbackErr) {
+                  console.error('[useRealtimeSync] onUpdate callback threw:', callbackErr);
+                }
+              }
+            }, debounceMs);
+          },
+          (err) => {
+            if (!mounted) return;
+            const isPermissionError =
+              err?.code === 'permission-denied' ||
+              err?.code === 'PERMISSION_DENIED';
+
+            if (isPermissionError) {
+              // Non-fatal: mark data as stale but serve device cached data
+              console.warn('[useRealtimeSync] Permission denied — listener paused. Serving cached device data.', err.message);
+              setState((prev) => ({ ...prev, loading: false, isStale: true, error: err }));
+            } else {
+              console.error('[useRealtimeSync] Listener error:', err);
+              setState((prev) => ({ ...prev, loading: false, error: err, isStale: true }));
             }
           }
-        }, debounceMs);
-      },
-      (err) => {
-        if (!mounted) return;
-        const isPermissionError =
-          err?.code === 'permission-denied' ||
-          err?.code === 'PERMISSION_DENIED';
-
-        if (isPermissionError) {
-          // Non-fatal: mark data as stale but serve device cached data
-          console.warn('[useRealtimeSync] Permission denied — listener paused. Serving cached device data.', err.message);
-          setState((prev) => ({ ...prev, loading: false, isStale: true, error: err }));
-        } else {
-          console.error('[useRealtimeSync] Listener error:', err);
-          setState((prev) => ({ ...prev, loading: false, error: err, isStale: true }));
-        }
-      }
-    );
+        );
+      });
 
     return () => {
       mounted = false;
