@@ -14,4 +14,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   printToPDF: async (options = {}) => {
     return await ipcRenderer.invoke('print-to-pdf', options);
   },
+  getPrinters: async () => {
+    return await ipcRenderer.invoke('get-printers');
+  },
+  printDirect: async (options = {}) => {
+    return await ipcRenderer.invoke('print-direct', options);
+  },
 });
