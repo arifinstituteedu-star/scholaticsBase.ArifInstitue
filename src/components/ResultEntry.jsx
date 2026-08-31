@@ -347,11 +347,18 @@ const ResultEntry = ({ classes = [], currentTeacherProfile = null, currentTeache
   }, [allowedSubjectOptions, selectedSubject]);
 
   useEffect(() => {
+    if (selectedExam?.targetGroup && selectedExam.targetGroup !== 'All' && selectedExam.targetGroup !== 'General') {
+      const match = allowedGroupOptions.find(g => normalizeKey(g) === normalizeKey(selectedExam.targetGroup));
+      if (match) {
+        setSelectedSection(match);
+        return;
+      }
+    }
     const firstGroup = allowedGroupOptions[0] || '';
     if (!selectedSection || !allowedGroupOptions.includes(selectedSection)) {
       setSelectedSection(firstGroup);
     }
-  }, [allowedGroupOptions, selectedSection]);
+  }, [allowedGroupOptions, selectedSection, selectedExam]);
 
   useEffect(() => {
     const rosterForSelection = (selectedClassData?.students || [])
@@ -566,7 +573,13 @@ const ResultEntry = ({ classes = [], currentTeacherProfile = null, currentTeache
 
   const handleReset = () => {
     const rosterForSelection = (selectedClassData?.students || [])
-      .filter((student) => !selectedSection || student.group === selectedSection)
+      .filter((student) => {
+        if (!selectedSection) return true;
+        const stGroup = typeof student?.group === 'object' && student.group !== null
+          ? student.group.name || student.group.id || ''
+          : String(student?.group || '');
+        return normalizeKey(stGroup) === normalizeKey(selectedSection);
+      })
       .map((student) => ({ ...student, marks: '', cqMarks: '', mcqMarks: '' }));
     setStudents(rosterForSelection);
     setFeedback('Marks cleared.');
@@ -715,7 +728,7 @@ const ResultEntry = ({ classes = [], currentTeacherProfile = null, currentTeache
                   const idVal = exam.examId || exam.key || exam.id;
                   return (
                     <option key={idVal} value={idVal}>
-                      {exam.name}
+                      {exam.name}{exam.targetGroup && exam.targetGroup !== 'All' ? ` (${exam.targetGroup})` : ''}
                     </option>
                   );
                 })
