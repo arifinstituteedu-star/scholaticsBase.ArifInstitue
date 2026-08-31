@@ -244,6 +244,20 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
     }
   }, [activeSchoolId]);
 
+  // Helper to check if an exam has been deleted
+  const isExamDeleted = useCallback((examId, targetClass, examName) => {
+    if (!deletedExamKeys || deletedExamKeys.length === 0) return false;
+    const cleanId = String(examId || '').trim();
+    const cleanClass = String(targetClass || '').trim();
+    const cleanName = String(examName || '').trim();
+
+    return (
+      (cleanId && deletedExamKeys.includes(cleanId)) ||
+      (cleanId && cleanClass && deletedExamKeys.includes(`${cleanId}::${cleanClass}`)) ||
+      (cleanName && cleanClass && deletedExamKeys.includes(`${cleanName}::${cleanClass}`))
+    );
+  }, [deletedExamKeys]);
+
   const handleDeleteExamSessionCard = async (e, exam) => {
     if (e) e.stopPropagation();
     const examName = exam?.name || 'Exam';
@@ -295,6 +309,9 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
 
       const keysToAdd = [
         targetExamId,
+        exam?.id,
+        exam?.key,
+        exam?.examId,
         `${targetExamId}::${examClass}`,
         `${examName}::${examClass}`,
       ].filter(Boolean);
@@ -308,14 +325,15 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
         return next;
       });
 
-      // Synchronize deletion to Central TeacherPanel Firestore document (Class-style Realtime Delete Sync!)
+      // Synchronize deletion to Central TeacherPanel Firestore document
       saveTeacherPanelData({ examSessions: nextExamSessions, storedResults: nextResults }, activeSchoolId).catch(() => { });
 
       // Perform async deletion in background collections
       (async () => {
-        if (targetExamId) {
+        const idsToDelete = [targetExamId, exam?.id, exam?.key, exam?.examId].filter(Boolean);
+        for (const id of new Set(idsToDelete)) {
           try {
-            await deleteExamSession(targetExamId, activeSchoolId);
+            await deleteExamSession(id, activeSchoolId);
           } catch (err) {
             console.warn('Document delete in exams collection failed or missing:', err);
           }
@@ -579,8 +597,20 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
 
   const classOptions = useMemo(() => sortClasses(safeClasses.map(c => c?.className).filter(Boolean)), [safeClasses]);
   const selectedClassData = safeClasses.find(c => c?.className === entryMeta.class);
-  const selectedClassGroups = selectedClassData?.groups || [];
-  const searchClassGroups = safeClasses.find(c => c?.className === searchClass)?.groups || [];
+  const selectedClassGroups = useMemo(() => {
+    const raw = selectedClassData?.groups || [];
+    return (Array.isArray(raw) ? raw : [])
+      .map(g => (typeof g === 'object' && g !== null ? (g.name || g.id || '') : String(g || '')).trim())
+      .filter(Boolean);
+  }, [selectedClassData]);
+
+  const searchClassGroups = useMemo(() => {
+    const raw = safeClasses.find(c => c?.className === searchClass)?.groups || [];
+    return (Array.isArray(raw) ? raw : [])
+      .map(g => (typeof g === 'object' && g !== null ? (g.name || g.id || '') : String(g || '')).trim())
+      .filter(Boolean);
+  }, [safeClasses, searchClass]);
+
   const entrySubjectOptions = useMemo(() => {
     const groupSubjects = selectedClassData?.groupSubjects?.[entryMeta.group] || [];
     const classSubjects = Object.values(selectedClassData?.groupSubjects || {}).flat();
@@ -595,10 +625,14 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
   const handleClassChange = (event) => {
     const selectedClass = event.target.value;
     const classObject = safeClasses.find(c => c?.className === selectedClass);
+    const rawFirstGroup = classObject?.groups?.[0];
+    const firstGroupName = typeof rawFirstGroup === 'object' && rawFirstGroup !== null
+      ? (rawFirstGroup.name || rawFirstGroup.id || '')
+      : String(rawFirstGroup || '');
     setEntryMeta(prev => ({
       ...prev,
       class: selectedClass,
-      group: classObject?.groups?.[0] || '',
+      group: firstGroupName || '',
     }));
   };
 
@@ -934,26 +968,6 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
     const classNames = (classes || []).map(cls => cls.className).filter(Boolean);
     return [...new Set(classNames)].sort();
   }, [classes]);
-
-  // Helper to check if an exam has been deleted
-  const isExamDeleted = useCallback((examId, targetClass, examName) => {
-    if (!deletedExamKeys || deletedExamKeys.length === 0) return false;
-    const cleanId = String(examId || '').trim();
-    const cleanClass = String(targetClass || '').trim();
-    const cleanName = String(examName || '').trim();
-
-    const existsInActiveExamSessions = Array.isArray(examSessions) && examSessions.some((e) => {
-      const eId = String(e?.examId || e?.id || e?.key || '').trim();
-      return eId && eId === cleanId && e?.status !== 'deleted';
-    });
-    if (existsInActiveExamSessions) return false;
-
-    return (
-      (cleanId && deletedExamKeys.includes(cleanId)) ||
-      (cleanId && cleanClass && deletedExamKeys.includes(`${cleanId}::${cleanClass}`)) ||
-      (cleanName && cleanClass && deletedExamKeys.includes(`${cleanName}::${cleanClass}`))
-    );
-  }, [deletedExamKeys, examSessions]);
 
   const allResults = useMemo(() => {
     return [...(enteredResults || []), ...(firestoreResults || [])];
@@ -1800,26 +1814,54 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
           <!DOCTYPE html>
           <html>
           <head>
-            <title>${studentName}_Official_Marksheet_PDF</title>
+            <title>${studentName} - Official Marksheet Print Preview</title>
             <style>
-              html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #525659; }
+              * { box-sizing: border-box; margin: 0; padding: 0; }
+              body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f172a; height: 100vh; display: flex; flex-direction: column; overflow: hidden; color: #f8fafc; }
+              .preview-toolbar { height: 56px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15); z-index: 10; }
+              .title-box { display: flex; align-items: center; gap: 10px; }
+              .title-box h2 { font-size: 15px; font-weight: 600; color: #f1f5f9; }
+              .actions { display: flex; align-items: center; gap: 10px; }
+              .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+              .btn-print { background: #059669; color: white; }
+              .btn-print:hover { background: #047857; }
+              .btn-save { background: #2563eb; color: white; }
+              .btn-save:hover { background: #1d4ed8; }
+              .btn-close { background: #475569; color: white; }
+              .btn-close:hover { background: #334155; }
+              .viewer-container { flex: 1; width: 100%; height: calc(100vh - 56px); background: #334155; }
               iframe { width: 100%; height: 100%; border: none; }
             </style>
           </head>
           <body>
-            <iframe id="pdfViewerFrame" src="${blobUrl}"></iframe>
+            <div class="preview-toolbar">
+              <div class="title-box">
+                <span style="font-size: 18px;">📄</span>
+                <h2>${studentName} - Marksheet Print Preview</h2>
+              </div>
+              <div class="actions">
+                <button class="btn btn-print" onclick="doPrint()">🖨️ Print Document</button>
+                <a class="btn btn-save" href="${blobUrl}" download="${filename}" style="text-decoration:none;">💾 Save PDF</a>
+                <button class="btn btn-close" onclick="window.close()">✖ Close</button>
+              </div>
+            </div>
+            <div class="viewer-container">
+              <iframe id="pdfViewerFrame" src="${blobUrl}#toolbar=1&navpanes=0&view=FitH"></iframe>
+            </div>
             <script>
-              window.onload = function() {
+              function doPrint() {
                 var frame = document.getElementById('pdfViewerFrame');
-                if (frame) {
-                  setTimeout(function() {
-                    try {
-                      frame.contentWindow.focus();
-                      frame.contentWindow.print();
-                    } catch(e) {}
-                  }, 400);
+                if (frame && frame.contentWindow) {
+                  try {
+                    frame.contentWindow.focus();
+                    frame.contentWindow.print();
+                  } catch(e) {
+                    window.print();
+                  }
+                } else {
+                  window.print();
                 }
-              };
+              }
             </script>
           </body>
           </html>
@@ -3926,20 +3968,15 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
       <ConfigureExamModal
         classes={classes}
         onClose={() => setShowConfigModal(false)}
-        onSave={async (newExam) => {
+        onSave={(newExam) => {
           const createdExam = { ...newExam, key: newExam.examId };
-          try {
-            await ensureFirebaseAuth();
-            await saveExamSession(newExam, activeSchoolId);
-          } catch (err) {
-            console.warn('Firestore write warning (exam configured locally):', err?.message || err);
-          }
 
+          // 1. Instant optimistic update
+          let nextExams = [];
           setExamSessions((prev) => {
-            const next = [...prev.filter((e) => (e.examId || e.id || e.key) !== newExam.examId), createdExam];
-            saveStoredExamSessions(next, activeSchoolId);
-            saveTeacherPanelData({ examSessions: next }, activeSchoolId).catch(() => { });
-            return next;
+            nextExams = [...prev.filter((e) => (e.examId || e.id || e.key) !== newExam.examId), createdExam];
+            saveStoredExamSessions(nextExams, activeSchoolId);
+            return nextExams;
           });
 
           setDeletedExamKeys((prev) => {
@@ -3958,6 +3995,21 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
           setSelectedExamSession(createdExam);
           showAlert('Exam Session configured successfully!', 'Success', 'success');
           setShowConfigModal(false);
+
+          // 2. Background cloud persistence
+          (async () => {
+            try {
+              await ensureFirebaseAuth();
+              await saveExamSession(newExam, activeSchoolId);
+            } catch (err) {
+              console.warn('Firestore write warning (exam configured locally):', err?.message || err);
+            }
+            try {
+              await saveTeacherPanelData({ examSessions: nextExams }, activeSchoolId);
+            } catch (err) {
+              console.warn('Teacher panel examSessions sync warning:', err);
+            }
+          })();
         }}
       />
     );
@@ -3995,22 +4047,29 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
       subjectRules: activeRules,
     };
 
-    try {
-      await ensureFirebaseAuth();
-      await saveExamSession(newExam, activeSchoolId);
-    } catch (err) {
-      console.warn('Firestore write warning:', err);
-    }
-
+    let nextExams = [];
     setExamSessions((prev) => {
-      const next = [...prev.filter((e) => (e.examId || e.id || e.key) !== newExam.examId), newExam];
-      saveStoredExamSessions(next, activeSchoolId);
-      saveTeacherPanelData({ examSessions: next }, activeSchoolId).catch(() => { });
-      return next;
+      nextExams = [...prev.filter((e) => (e.examId || e.id || e.key) !== newExam.examId), newExam];
+      saveStoredExamSessions(nextExams, activeSchoolId);
+      return nextExams;
     });
 
     setSelectedExamSession(newExam);
     showAlert(`Standard exam configuration "${examName}" created for ${targetClass}!`, 'Exam Configured', 'success');
+
+    (async () => {
+      try {
+        await ensureFirebaseAuth();
+        await saveExamSession(newExam, activeSchoolId);
+      } catch (err) {
+        console.warn('Firestore write warning:', err);
+      }
+      try {
+        await saveTeacherPanelData({ examSessions: nextExams }, activeSchoolId);
+      } catch (err) {
+        console.warn('Teacher panel examSessions sync warning:', err);
+      }
+    })();
   };
 
   const renderExamDirectory = () => {
@@ -4863,10 +4922,17 @@ function ConfigureExamModal({ classes = [], onClose, onSave }) {
     if (!classObj) return [];
     const grpSet = new Set();
     if (Array.isArray(classObj.groups) && classObj.groups.length > 0) {
-      classObj.groups.forEach(g => g && grpSet.add(String(g).trim()));
+      classObj.groups.forEach(g => {
+        if (!g) return;
+        const name = (typeof g === 'object' && g !== null ? (g.name || g.id || '') : String(g || '')).trim();
+        if (name) grpSet.add(name);
+      });
     }
     if (classObj.groupSubjects) {
-      Object.keys(classObj.groupSubjects).forEach(g => g && grpSet.add(String(g).trim()));
+      Object.keys(classObj.groupSubjects).forEach(g => {
+        const name = String(g || '').trim();
+        if (name) grpSet.add(name);
+      });
     }
     return Array.from(grpSet);
   }, [classObj]);

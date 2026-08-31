@@ -1,7 +1,7 @@
 {
   "name": "scholasticbase-school-management",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "ScholasticBase School Management System Desktop Application",
   "author": "ScholasticBase",
   "type": "module",

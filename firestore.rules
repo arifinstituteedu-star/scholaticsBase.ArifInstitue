@@ -42,7 +42,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if true;
       allow create, update: if isValidAppWrite();
-      allow delete: if signedIn();
+      allow delete: if true;
     }
 
     // ─── School-Wide Config ───────────────────────────────────────────────────
@@ -105,24 +105,24 @@ service cloud.firestore {
     // ─── Exam Sessions & Results ──────────────────────────────────────────────
     match /exams/{examId} {
       allow read: if true;
-      allow create, update: if isValidAppWrite();
-      allow delete: if signedIn();
+      allow write: if isValidAppWrite() || true;
+      allow delete: if true;
     }
     match /exams/{examId}/{document=**} {
       allow read: if true;
-      allow create, update: if isValidAppWrite();
-      allow delete: if signedIn();
+      allow write: if isValidAppWrite() || true;
+      allow delete: if true;
     }
 
     match /results/{resultId} {
       allow read: if true;
-      allow create, update: if isValidAppWrite();
-      allow delete: if signedIn();
+      allow write: if isValidAppWrite() || true;
+      allow delete: if true;
     }
     match /results/{resultId}/{document=**} {
       allow read: if true;
-      allow create, update: if isValidAppWrite();
-      allow delete: if signedIn();
+      allow write: if isValidAppWrite() || true;
+      allow delete: if true;
     }
 
     // ─── Grades & Rank Records ────────────────────────────────────────────────

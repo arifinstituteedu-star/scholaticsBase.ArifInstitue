@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useSchoolProfile } from '../context/SchoolProfileContext.jsx';
+import SafeImage from './SafeImage.jsx';
 import useTranslation from '../hooks/useTranslation.js';
 import useConfirm from '../hooks/useConfirm.js';
 import useAlert from '../hooks/useAlert.js';
@@ -73,27 +75,284 @@ const ROUTINE_STYLES = `
 }
 
 @media print {
-  @page { size: A4 landscape; margin: 10mm; }
+  @page {
+    size: A4 landscape !important;
+    margin: 5mm 7mm !important;
+  }
 
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    box-sizing: border-box !important;
+  }
 
-  body { background: #fff !important; }
-  .routine-print-hide { display: none !important; }
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
 
-  .routine-main-container { background: #fff !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; min-height: 0 !important; }
+  /* Reset outer shell containers to prevent height spill & unwanted top offsets */
+  #root,
+  .tp-layout,
+  .tp-main,
+  .tp-content-area,
+  .routine-root,
+  .routine-main-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    display: block !important;
+    position: static !important;
+  }
 
-  .routine-header { background: #fff !important; box-shadow: none !important; border-radius: 0 !important; border-bottom: 2px solid ${TOKENS.indigo} !important; padding: 0 0 10px 0 !important; margin-bottom: 14px !important; }
-  .routine-header h2, .routine-header div { color: ${TOKENS.ink} !important; }
+  /* Completely hide all screen elements */
+  header:not(.print-header),
+  nav,
+  aside,
+  .tp-sidebar,
+  .tp-header,
+  .tp-nav,
+  .tp-tabs,
+  .tp-header-user,
+  .tp-breadcrumbs,
+  .routine-header,
+  .routine-screen-card,
+  .routine-toolbtn,
+  .routine-backbtn,
+  .routine-print-hide,
+  .routine-tab-container,
+  .routine-selector-row,
+  .no-print {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 
-  .routine-print-only-hide { display: none !important; }
+  /* Target routine container at 0, 0 position of Page 1 */
+  .printable-area,
+  .routine-printable-area {
+    visibility: visible !important;
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    background: #ffffff !important;
+    z-index: 99999 !important;
+  }
 
-  .routine-table-container { box-shadow: none !important; padding: 0 !important; border: none !important; overflow: visible !important; width: 100% !important; }
-  .routine-table-container table { width: 100% !important; min-width: 0 !important; table-layout: fixed !important; font-size: 12px !important; page-break-inside: avoid; }
-  .routine-table-container th, .routine-table-container td { padding: 6px 4px !important; word-break: break-word; }
-  .routine-table-container tr { page-break-inside: avoid; }
-  .routine-table-container input { border: none !important; background: transparent !important; outline: none !important; }
+  .routine-print-header {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    margin-bottom: 4px !important;
+  }
+
+  .routine-print-footer {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    margin-top: 36px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+  }
+
+  .routine-table-container {
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 0 4px 0 !important;
+    border: 1.5px solid #1E2A4A !important;
+    border-radius: 4px !important;
+    overflow: visible !important;
+    width: 100% !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .routine-table-container table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    font-size: 10.5px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .routine-table-container th {
+    padding: 4px 2px !important;
+    font-size: 10.5px !important;
+    height: 24px !important;
+    background: #1E2A4A !important;
+    color: #ffffff !important;
+    border-right: 1px solid #2A3B66 !important;
+    border-bottom: 1.5px solid #E3A23C !important;
+  }
+
+  .routine-table-container td {
+    padding: 2px 2px !important;
+    word-break: break-word !important;
+    height: 36px !important;
+    max-height: 38px !important;
+    border-right: 1px solid #E4DFD3 !important;
+    border-bottom: 1px solid #E4DFD3 !important;
+    vertical-align: middle !important;
+  }
+
+  .routine-table-container tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    height: 36px !important;
+  }
+
+  .routine-table-container input {
+    border: none !important;
+    background: transparent !important;
+    outline: none !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1.1 !important;
+  }
+
+  .routine-tiffin-col {
+    width: 24px !important;
+    padding: 1px !important;
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+    background: repeating-linear-gradient(135deg, #F3E3C4, #F3E3C4 4px, #EAD6A8 4px, #EAD6A8 8px) !important;
+  }
 }
 `;
+
+// Helper for clean 1-page printing with class isolation
+export const handlePrintRoutine = () => {
+  if (typeof window === 'undefined') return;
+  document.body.classList.add('print-mode-routine');
+  const cleanup = () => {
+    document.body.classList.remove('print-mode-routine');
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+
+  if (window.electronAPI?.print) {
+    window.electronAPI.print({ printBackground: true, landscape: true });
+    setTimeout(cleanup, 2000);
+  } else {
+    window.print();
+    setTimeout(cleanup, 2000);
+  }
+};
+
+// --- Routine Print Header & Footer Components ---
+const RoutinePrintHeader = ({ title, subtitle, targetType, targetName, extraInfo }) => {
+  const profileCtx = useSchoolProfile() || {};
+  const schoolProfile = profileCtx.schoolProfile || profileCtx.defaultSchoolProfile || {};
+
+  const activeSchoolName = schoolProfile?.schoolName || (typeof window !== 'undefined' ? window.localStorage.getItem('schoolName') : '') || 'ScholasticBase Smart School';
+  const activeLocation = schoolProfile?.location || (typeof window !== 'undefined' ? window.localStorage.getItem('schoolLocation') : '') || '';
+  const activeEiin = schoolProfile?.eiinNumber || (typeof window !== 'undefined' ? window.localStorage.getItem('schoolEiinNumber') : '') || '';
+  const activeLogo = schoolProfile?.logoUrl || schoolProfile?.logo || '/greenfield_logo.png';
+
+  const todayStr = new Date().toLocaleDateString('bn-BD', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  return (
+    <div className="routine-print-header" style={{ display: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid #1E2A4A', paddingBottom: '4px', marginBottom: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <SafeImage src={activeLogo} alt="Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} fallbackSrc="/greenfield_logo.png" />
+          <div>
+            <h1 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#1E2A4A', lineHeight: 1.15 }}>{activeSchoolName}</h1>
+            <p style={{ margin: '1px 0 0', fontSize: '10px', color: '#475569', fontWeight: '600' }}>
+              {activeLocation && <span>{activeLocation}</span>}
+              {activeLocation && activeEiin && <span> • </span>}
+              {activeEiin && <span>EIIN: {activeEiin}</span>}
+            </p>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ display: 'inline-block', background: '#1E2A4A', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '700' }}>
+            {title || 'সাপ্তাহিক ক্লাস রুটিন'}
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b', marginTop: '1px', fontWeight: '600' }}>
+            শিক্ষাবর্ষ: ২০২৬-২০২৭ | প্রিন্ট: {todayStr}
+          </div>
+        </div>
+      </div>
+      {(targetName || extraInfo) && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', padding: '3px 8px', borderRadius: '4px', border: '1px solid #E2E8F0', marginBottom: '4px', fontSize: '11px' }}>
+          <div>
+            <strong style={{ color: '#1E2A4A' }}>{targetType || 'বিবরণ'}: </strong>
+            <span style={{ color: '#0F172A', fontWeight: '700' }}>{targetName}</span>
+            {extraInfo && <span style={{ color: '#475569', marginLeft: '6px' }}>({extraInfo})</span>}
+          </div>
+          <div style={{ color: '#64748b', fontSize: '10px', fontWeight: '600' }}>
+            🕒 সাপ্তাহিক ক্লাসের সময়সূচী
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const RoutinePrintFooter = () => (
+  <div className="routine-print-footer" style={{ display: 'none' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '40px', marginTop: '36px', paddingTop: '6px' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ height: '36px' }} />
+        <div style={{ width: '80%', height: '1.2px', background: '#1E2A4A', margin: '0 auto 5px' }} />
+        <span style={{ fontSize: '10.5px', fontWeight: '700', color: '#1E2A4A' }}>শ্রেণী শিক্ষক / রুটিন সমন্বয়কারী</span>
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ height: '36px' }} />
+        <div style={{ width: '80%', height: '1.2px', background: '#1E2A4A', margin: '0 auto 5px' }} />
+        <span style={{ fontSize: '10.5px', fontWeight: '700', color: '#1E2A4A' }}>সহকারী প্রধান শিক্ষক</span>
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ height: '36px' }} />
+        <div style={{ width: '80%', height: '1.2px', background: '#1E2A4A', margin: '0 auto 5px' }} />
+        <span style={{ fontSize: '10.5px', fontWeight: '700', color: '#1E2A4A' }}>প্রধান শিক্ষক / অধ্যক্ষ</span>
+      </div>
+    </div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', paddingTop: '4px', borderTop: '1px dashed #CBD5E1', fontSize: '8.5px', color: '#94A3B8' }}>
+      <span>ScholasticBase Smart School Platform</span>
+      <span>Official Academic Document — Computer Generated</span>
+    </div>
+  </div>
+);
 
 // --- Shared Constants ---
 const DEFAULT_TIME_SLOTS = [
@@ -470,15 +729,21 @@ export const TeacherRoutine = ({ teacherName, routine = {}, onUpdate, readOnly =
   }, [routine, onUpdate, readOnly, safeTimeSlots]);
 
   return (
-    <div className="routine-fade printable-area">
-      <div style={{ marginBottom: 18, background: '#EAF4FE', padding: '14px 16px', borderRadius: 10, border: `1px solid #C7DEF7`, display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div className="routine-fade printable-area routine-printable-area">
+      <RoutinePrintHeader
+        title="শিক্ষক সাপ্তাহিক ক্লাস রুটিন"
+        targetType="শিক্ষক"
+        targetName={teacherName}
+      />
+
+      <div className="routine-screen-card no-print routine-print-hide" style={{ marginBottom: 18, background: '#EAF4FE', padding: '14px 16px', borderRadius: 10, border: `1px solid #C7DEF7`, display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ width: 38, height: 38, borderRadius: 10, background: TOKENS.indigo, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>👨‍🏫</div>
         <div style={{ flex: 1 }}>
           <h3 className="routine-display" style={{ fontWeight: 700, color: TOKENS.indigo, fontSize: 18, margin: 0 }}>{teacherName}</h3>
           <p style={{ fontSize: 13.5, color: '#3B5B85', margin: '2px 0 0' }}>{readOnly ? 'শিক্ষকের জন্য ক্লাস এবং বিষয় দেখুন।' : 'এখানে শিক্ষকের জন্য ক্লাস এবং বিষয় নির্ধারণ করুন।'}</p>
         </div>
         <button
-          onClick={() => window.print()}
+          onClick={handlePrintRoutine}
           className="routine-toolbtn routine-print-hide"
           style={{ background: TOKENS.indigo, color: '#fff', border: 0, padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
         >
@@ -525,6 +790,8 @@ export const TeacherRoutine = ({ teacherName, routine = {}, onUpdate, readOnly =
           );
         }}
       />
+
+      <RoutinePrintFooter />
     </div>
   );
 };
@@ -849,8 +1116,15 @@ export const ClassRoutineManager = ({
   const currentRoutine = selectedGroup.gridRoutine || {};
 
   return (
-    <div className="routine-fade printable-area">
-      <div style={{ marginBottom: 18, background: '#EAF7EF', padding: 16, borderRadius: 10, border: '1px solid #BFE4CE', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+    <div className="routine-fade printable-area routine-printable-area">
+      <RoutinePrintHeader
+        title="শ্রেণী সাপ্তাহিক ক্লাস রুটিন"
+        targetType="শ্রেণী"
+        targetName={selectedClass.name}
+        extraInfo={`গ্রুপ/শাখা: ${selectedGroup.name}`}
+      />
+
+      <div className="routine-screen-card no-print routine-print-hide" style={{ marginBottom: 18, background: '#EAF7EF', padding: 16, borderRadius: 10, border: '1px solid #BFE4CE', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <div>
           <h3 className="routine-display" style={{ fontWeight: 700, color: TOKENS.forestDeep, fontSize: 18, margin: 0 }}>{selectedClass.name} ({selectedGroup.name})</h3>
           <p style={{ fontSize: 13.5, color: '#2E6B4A', margin: '2px 0 0' }}>{effectiveReadOnly ? 'এই গ্রুপের রুটিন দেখুন।' : 'এই গ্রুপের রুটিন পরিবর্তন বা আপডেট করুন।'}</p>
@@ -864,7 +1138,7 @@ export const ClassRoutineManager = ({
             ⬅ গ্রুপ তালিকায় ফিরুন
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={handlePrintRoutine}
             className="routine-toolbtn routine-print-hide"
             style={{ background: TOKENS.forest, color: '#fff', border: 0, padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
           >
@@ -899,12 +1173,12 @@ export const ClassRoutineManager = ({
                 background: 'transparent',
                 textAlign: 'center',
                 fontWeight: 700,
-                fontSize: 14,
+                fontSize: 13,
                 width: '100%',
                 height: '100%',
                 border: 0,
                 outline: 'none',
-                padding: '8px 2px',
+                padding: '6px 2px',
                 color: TOKENS.forestDeep
               }}
               placeholder={effectiveReadOnly ? '—' : '+ Subject'}
@@ -912,6 +1186,8 @@ export const ClassRoutineManager = ({
           );
         }}
       />
+
+      <RoutinePrintFooter />
     </div>
   );
 };

@@ -765,7 +765,17 @@ export const saveExamSession = async (examSession, schoolId) => {
     }
 };
 
-export const deleteExamSession = (examId, schoolId) => deleteDocument(refs.exam(examId, schoolId));
+export const deleteExamSession = async (examId, schoolId) => {
+    if (!examId) return;
+    const clean = cleanId(examId, 'exam');
+    const raw = String(examId).trim();
+    const promises = [];
+    promises.push(deleteDocument(refs.exam(clean, schoolId)).catch(() => {}));
+    if (raw && raw !== clean) {
+        promises.push(deleteDocument(doc(db, COLLECTIONS.exams, raw)).catch(() => {}));
+    }
+    await Promise.all(promises);
+};
 
 // Local Device Storage caching helpers for subscriptions
 const saveStorageCache = (key, data) => {
