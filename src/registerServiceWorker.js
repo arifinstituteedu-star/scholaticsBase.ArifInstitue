@@ -1,18 +1,29 @@
 export const registerServiceWorker = () => {
-    if (!('serviceWorker' in navigator)) return;
+  if (typeof window === 'undefined') return;
 
-    const register = () => {
-        navigator.serviceWorker.register('/sw.js', { scope: '/' }).then((reg) => {
-            console.log('✅ Service worker registered successfully with scope:', reg.scope);
-        }).catch((err) => {
-            console.warn('Service worker registration failed:', err);
+  // Unregister existing service workers to ensure no stale cached files
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister().then((unregistered) => {
+          if (unregistered) {
+            console.log('🔄 Old ServiceWorker unregistered to prevent cache issues.');
+          }
         });
-    };
+      }
+    }).catch((err) => {
+      console.warn('Could not unregister service worker:', err);
+    });
+  }
 
-    if (document.readyState === 'complete') {
-        register();
-    } else {
-        window.addEventListener('load', register);
-    }
+  // Purge any existing Cache Storage items
+  if ('caches' in window) {
+    caches.keys().then((names) => {
+      names.forEach((name) => {
+        caches.delete(name);
+      });
+    }).catch(() => {});
+  }
 };
+
 

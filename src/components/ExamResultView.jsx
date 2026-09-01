@@ -111,6 +111,25 @@ const normalizeSubjects = (subjects) => Array.isArray(subjects)
   ? [...new Set(subjects.map((subject) => String(subject || '').trim()).filter(Boolean))]
   : [];
 
+export const getCompositeExamKey = (exam) => {
+  if (!exam) return '';
+  const examId = String(exam.examId || exam.id || exam.key || '').trim().toLowerCase();
+  const targetClass = String(exam.targetClass || '').trim().toLowerCase();
+  const targetGroup = String(exam.targetGroup || 'all').trim().toLowerCase();
+  const name = String(exam.name || '').trim().toLowerCase();
+  return `${examId}:::${targetClass}:::${targetGroup}:::${name}`;
+};
+
+export const isGroupMatch = (g1, g2) => {
+  const s1 = String(g1 || '').trim().toLowerCase();
+  const s2 = String(g2 || '').trim().toLowerCase();
+  if (!s1 || !s2 || s1 === 'all' || s2 === 'all' || s1 === 'general' || s2 === 'general') return true;
+  if (s1 === s2) return true;
+  const c1 = s1.replace(/[\s\-_]+/g, '');
+  const c2 = s2.replace(/[\s\-_]+/g, '');
+  return c1 === c2;
+};
+
 const getSubjectResults = () => [];
 
 /* ═════════════════════════════════════════════════════════════
@@ -492,8 +511,18 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
             const k = exam?.examId || exam?.id || exam?.key;
             return k && !isExamDeleted(k, exam?.targetClass, exam?.name);
           });
-          setExamSessions(freshExams);
-          saveStoredExamSessions(freshExams, activeSchoolId);
+          setExamSessions((prev) => {
+            const map = new Map();
+            (prev || []).forEach((e) => {
+              if (e) map.set(getCompositeExamKey(e), e);
+            });
+            freshExams.forEach((e) => {
+              if (e) map.set(getCompositeExamKey(e), e);
+            });
+            const merged = Array.from(map.values());
+            saveStoredExamSessions(merged, activeSchoolId);
+            return merged;
+          });
         }
 
         if (Array.isArray(remoteData?.storedResults) && remoteData.storedResults.length > 0) {
@@ -545,16 +574,20 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
         const localDocs = getStoredExamSessions(activeSchoolId);
         const map = new Map();
         localDocs.forEach((item) => {
+          if (!item) return;
           const id = item?.examId || item?.id || item?.key;
-          if (id && !deletedExamKeys.includes(id)) map.set(id, item);
+          if (id && !isExamDeleted(id, item?.targetClass, item?.name)) {
+            map.set(getCompositeExamKey(item), item);
+          }
         });
 
         const activeServerExamIds = new Set();
         firestoreDocs.forEach((item) => {
+          if (!item) return;
           const id = item?.examId || item?.id || item?.key;
-          if (id && item?.status !== 'deleted') {
+          if (id && item?.status !== 'deleted' && !isExamDeleted(id, item?.targetClass, item?.name)) {
             activeServerExamIds.add(id);
-            map.set(id, item);
+            map.set(getCompositeExamKey(item), item);
           }
         });
 
@@ -572,9 +605,19 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
           }
         }
 
-        const merged = Array.from(map.values());
-        setExamSessions(merged);
-        saveStoredExamSessions(merged, activeSchoolId);
+        setExamSessions((prev) => {
+          (prev || []).forEach((item) => {
+            if (!item) return;
+            const id = item?.examId || item?.id || item?.key;
+            if (id && !isExamDeleted(id, item?.targetClass, item?.name)) {
+              const k = getCompositeExamKey(item);
+              if (!map.has(k)) map.set(k, item);
+            }
+          });
+          const merged = Array.from(map.values());
+          saveStoredExamSessions(merged, activeSchoolId);
+          return merged;
+        });
       },
       (err) => {
         setIsInitialLoading(false);
@@ -1101,7 +1144,7 @@ const getStudentGroupName = (student) => {
       if (isSpecificGroup) {
         const rGroup = String(r?.group || r?.section || '').trim().toLowerCase();
         if (rGroup) {
-          if (rGroup !== targetGroupClean) return false;
+          if (!isGroupMatch(rGroup, targetGroupClean)) return false;
         } else {
           const classObj = (classes || []).find((c) => String(c?.className || '').trim().toLowerCase() === targetClassClean);
           const studentObj = (classObj?.students || []).find((s) => {
@@ -1112,8 +1155,8 @@ const getStudentGroupName = (student) => {
             return (sRoll && sRoll === rRoll) || (sName && sName === rName);
           });
           if (studentObj) {
-            const sGrp = getStudentGroupName(studentObj).toLowerCase();
-            if (sGrp && sGrp !== targetGroupClean) return false;
+            const sGrp = getStudentGroupName(studentObj);
+            if (!isGroupMatch(sGrp, targetGroupClean)) return false;
           }
         }
       }
@@ -1132,16 +1175,27 @@ const getStudentGroupName = (student) => {
 
   const examsWithResults = useMemo(() => {
     const list = [];
+    const seenCompositeKeys = new Set();
 
-    // 1. Add all configured exam sessions from Firebase
+    // 1. Add all configured exam sessions from Firebase/State ONLY if they have an explicit targetGroup
     if (Array.isArray(examSessions)) {
       examSessions.forEach((e) => {
         const examId = e?.examId || e?.id || e?.key;
-        if (e && examId) {
-          if (!isExamDeleted(examId, e.targetClass, e.name)) {
+        const targetGroup = e?.targetGroup ? String(e.targetGroup).trim() : '';
+
+        // Strict Requirement: Exam MUST have a declared group
+        if (!e || !examId || !targetGroup || targetGroup.toLowerCase() === 'all') {
+          return;
+        }
+
+        if (!isExamDeleted(examId, e.targetClass, e.name)) {
+          const compKey = getCompositeExamKey(e);
+          if (!seenCompositeKeys.has(compKey)) {
+            seenCompositeKeys.add(compKey);
             list.push({
               ...e,
               examId,
+              targetGroup,
               branchKey: e.branchKey || getBranchKeyByClass(e.targetClass || e),
             });
           }
@@ -1149,7 +1203,7 @@ const getStudentGroupName = (student) => {
       });
     }
 
-    // 2. Add legacy exam sessions only if they have results for enrolled students
+    // 2. Add legacy exam sessions ONLY if they have distinct declared groups in their results
     if (Array.isArray(uniqueExamIdsInResults)) {
       uniqueExamIdsInResults.forEach((examId) => {
         const matchingResults = allResults.filter(r => (r.examId || 'current') === examId);
@@ -1158,25 +1212,55 @@ const getStudentGroupName = (student) => {
         targetClasses.forEach((cls) => {
           const name = examId === 'current' ? 'General Term (Legacy)' : examId;
           if (isExamDeleted(examId, cls, name)) return;
-          if (list.some((e) => e.examId === examId && String(e.targetClass || '').trim().toLowerCase() === String(cls || '').trim().toLowerCase())) return;
 
-          // Do not include legacy exams if no enrolled students have results in this class
-          const enrolledResults = getEnrolledResultsForExamCard(examId, cls);
-          if (enrolledResults.length === 0) return;
+          // Find all distinct declared groups for this class & exam from student records/results
+          const classObj = (classes || []).find(c => String(c?.className || '').trim().toLowerCase() === String(cls).trim().toLowerCase());
+          const groupSet = new Set();
 
-          list.push({
-            examId: examId,
-            name: name,
-            targetClass: cls,
-            branchKey: getBranchKeyByClass(cls),
-            subjectRules: {},
-            isLegacy: true,
+          matchingResults.filter(r => String(r.class || '').trim().toLowerCase() === String(cls).trim().toLowerCase()).forEach(r => {
+            const rGrp = String(r.group || r.section || '').trim();
+            if (rGrp && rGrp.toLowerCase() !== 'all') {
+              groupSet.add(rGrp);
+            } else if (classObj) {
+              const studentObj = (classObj.students || []).find(s => {
+                const sRoll = String(s?.roll || '').trim().toLowerCase();
+                const sName = String(s?.name || s?.studentName || '').trim().toLowerCase();
+                const rRoll = String(r?.roll || '').trim().toLowerCase();
+                const rName = String(r?.name || r?.studentName || '').trim().toLowerCase();
+                return (sRoll && sRoll === rRoll) || (sName && sName === rName);
+              });
+              if (studentObj) {
+                const sGrp = getStudentGroupName(studentObj);
+                if (sGrp && sGrp.toLowerCase() !== 'all') groupSet.add(sGrp);
+              }
+            }
+          });
+
+          // Only create legacy exam cards for explicitly declared groups
+          groupSet.forEach((detectedGroup) => {
+            if (!detectedGroup || detectedGroup.toLowerCase() === 'all') return;
+            const legacyCompKey = getCompositeExamKey({ examId, targetClass: cls, targetGroup: detectedGroup, name });
+            if (seenCompositeKeys.has(legacyCompKey)) return;
+
+            const enrolledResults = getEnrolledResultsForExamCard(examId, cls, detectedGroup);
+            if (enrolledResults.length === 0) return;
+
+            seenCompositeKeys.add(legacyCompKey);
+            list.push({
+              examId: examId,
+              name: name,
+              targetClass: cls,
+              targetGroup: detectedGroup,
+              branchKey: getBranchKeyByClass(cls),
+              subjectRules: {},
+              isLegacy: true,
+            });
           });
         });
       });
     }
     return list;
-  }, [examSessions, uniqueExamIdsInResults, allResults, isExamDeleted, getEnrolledResultsForExamCard]);
+  }, [examSessions, uniqueExamIdsInResults, allResults, isExamDeleted, getEnrolledResultsForExamCard, classes]);
 
   // Group results by student for the selected exam session
   const studentResults = useMemo(() => {
@@ -1217,8 +1301,8 @@ const getStudentGroupName = (student) => {
           (cls.students || [])
             .filter((student) => {
               if (!isSpecificGroup) return true;
-              const sGrp = getStudentGroupName(student).toLowerCase();
-              return sGrp === targetGroupClean;
+              const sGrp = getStudentGroupName(student);
+              return isGroupMatch(sGrp, targetGroupClean);
             })
             .forEach((student) => addStudent(student, cls.className));
         });
@@ -1237,7 +1321,7 @@ const getStudentGroupName = (student) => {
       if (isSpecificGroup) {
         const rGrp = String(r?.group || r?.section || '').trim().toLowerCase();
         if (rGrp) {
-          if (rGrp !== targetGroupClean) return false;
+          if (!isGroupMatch(rGrp, targetGroupClean)) return false;
         } else {
           const targetClassData = (classes || []).find((cls) => cls && String(cls.className || '').trim().toLowerCase() === targetClassClean);
           const studentObj = (targetClassData?.students || []).find((s) => {
@@ -1248,8 +1332,8 @@ const getStudentGroupName = (student) => {
             return (sRoll && sRoll === rRoll) || (sName && sName === rName);
           });
           if (studentObj) {
-            const sGrp = getStudentGroupName(studentObj).toLowerCase();
-            if (sGrp && sGrp !== targetGroupClean) return false;
+            const sGrp = getStudentGroupName(studentObj);
+            if (!isGroupMatch(sGrp, targetGroupClean)) return false;
           }
         }
       }
@@ -1261,7 +1345,7 @@ const getStudentGroupName = (student) => {
     const isClassDefinedInSchool = Boolean(targetClassData);
     let enrolledStudents = targetClassData?.students || [];
     if (isSpecificGroup) {
-      enrolledStudents = enrolledStudents.filter((s) => getStudentGroupName(s).toLowerCase() === targetGroupClean);
+      enrolledStudents = enrolledStudents.filter((s) => isGroupMatch(getStudentGroupName(s), targetGroupClean));
     }
 
     activeResults.forEach((result) => {
@@ -4521,14 +4605,14 @@ const getStudentGroupName = (student) => {
                         const isCardGroupSpecific = examTargetGroupClean && examTargetGroupClean !== 'all' && examTargetGroupClean !== 'general';
                         const enrolledStudentsInGroup = (classData?.students || []).filter((s) => {
                           if (!isCardGroupSpecific) return true;
-                          return getStudentGroupName(s).toLowerCase() === examTargetGroupClean;
+                          return isGroupMatch(getStudentGroupName(s), examTargetGroupClean);
                         });
                         const enrolledTotal = enrolledStudentsInGroup.length || (isCardGroupSpecific ? 0 : uniqueStudents.size) || 0;
                         const evalPercent = enrolledTotal > 0 ? Math.min(100, Math.round((uniqueStudents.size / enrolledTotal) * 100)) : 0;
 
                         return (
                           <div
-                            key={`${exam.examId}-${exam.targetClass}`}
+                            key={`${exam.examId}-${exam.targetClass}-${exam.targetGroup || 'all'}-${exam.name || ''}`}
                             onClick={() => setSelectedExamSession(exam)}
                             className="erv-exam-card"
                           >
@@ -4539,7 +4623,7 @@ const getStudentGroupName = (student) => {
                                   color: branch.color,
                                   border: `1px solid ${branch.color}35`,
                                 }}>
-                                  {exam.targetClass}{exam.targetGroup && exam.targetGroup !== 'All' ? ` • ${exam.targetGroup}` : ''}
+                                  {exam.targetClass} • {exam.targetGroup || 'General'}
                                 </span>
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -5076,7 +5160,7 @@ function ConfigureExamModal({ classes = [], onClose, onSave }) {
   const { showAlert } = useAlert();
   const [selectedBranch, setSelectedBranch] = useState('primary');
   const [name, setName] = useState('');
-  const [targetGroup, setTargetGroup] = useState('All');
+  const [targetGroup, setTargetGroup] = useState('');
   const [customSubjects, setCustomSubjects] = useState([]);
   const [newSubjectInput, setNewSubjectInput] = useState('');
 
@@ -5104,27 +5188,43 @@ function ConfigureExamModal({ classes = [], onClose, onSave }) {
   }, [classes, targetClass]);
 
   const availableGroups = useMemo(() => {
-    if (!classObj) return [];
     const grpSet = new Set();
-    if (Array.isArray(classObj.groups) && classObj.groups.length > 0) {
-      classObj.groups.forEach(g => {
-        if (!g) return;
-        const name = (typeof g === 'object' && g !== null ? (g.name || g.id || '') : String(g || '')).trim();
-        if (name) grpSet.add(name);
-      });
+    if (classObj) {
+      if (Array.isArray(classObj.groups) && classObj.groups.length > 0) {
+        classObj.groups.forEach(g => {
+          if (!g) return;
+          const name = (typeof g === 'object' && g !== null ? (g.name || g.id || '') : String(g || '')).trim();
+          if (name && name.toLowerCase() !== 'all') grpSet.add(name);
+        });
+      }
+      if (classObj.groupSubjects) {
+        Object.keys(classObj.groupSubjects).forEach(g => {
+          const name = String(g || '').trim();
+          if (name && name.toLowerCase() !== 'all') grpSet.add(name);
+        });
+      }
+      if (Array.isArray(classObj.students)) {
+        classObj.students.forEach(s => {
+          const sGrp = getStudentGroupName(s);
+          if (sGrp && sGrp.toLowerCase() !== 'all') grpSet.add(sGrp);
+        });
+      }
     }
-    if (classObj.groupSubjects) {
-      Object.keys(classObj.groupSubjects).forEach(g => {
-        const name = String(g || '').trim();
-        if (name) grpSet.add(name);
-      });
+    const branch = selectedBranch || getBranchKeyByClass(targetClass);
+    if (grpSet.size === 0 && (branch === 'high-school' || branch === 'college')) {
+      grpSet.add('Science');
+      grpSet.add('Business Studies');
+      grpSet.add('Humanities');
+    }
+    if (grpSet.size === 0) {
+      grpSet.add('General');
     }
     return Array.from(grpSet);
-  }, [classObj]);
+  }, [classObj, targetClass, selectedBranch]);
 
   useEffect(() => {
     if (availableGroups.length > 0) {
-      if (!targetGroup || (targetGroup !== 'All' && !availableGroups.includes(targetGroup))) {
+      if (!targetGroup || !availableGroups.includes(targetGroup)) {
         setTargetGroup(availableGroups[0]);
       }
     } else {
@@ -5256,6 +5356,10 @@ function ConfigureExamModal({ classes = [], onClose, onSave }) {
       showAlert('Please select a target class.', 'Validation Error', 'warning');
       return;
     }
+    if (!targetGroup || !targetGroup.trim() || targetGroup === 'All') {
+      showAlert('Please select a specific academic group (e.g., Science, Business Studies, Humanities, or General) for this exam session.', 'Group Required', 'warning');
+      return;
+    }
 
     const isPrimaryBranch = selectedBranch === 'primary';
     const activeRules = {};
@@ -5365,20 +5469,18 @@ function ConfigureExamModal({ classes = [], onClose, onSave }) {
 
           {/* Group / Track Selection */}
           <div className="tp-form-group" style={{ marginTop: '16px' }}>
-            <label className="tp-form-label">Target Group / Section *</label>
+            <label className="tp-form-label">Academic Group / Track * (Required)</label>
             <select
               className="tp-form-input"
               value={targetGroup}
               onChange={e => setTargetGroup(e.target.value)}
-              style={{ width: '100%' }}
+              style={{ width: '100%', borderColor: '#8b5cf6', fontWeight: '600' }}
+              required
             >
               {availableGroups.length > 0 ? (
-                <>
-                  <option value="All">All Groups (Combined)</option>
-                  {availableGroups.map(grp => (
-                    <option key={grp} value={grp}>{grp}</option>
-                  ))}
-                </>
+                availableGroups.map(grp => (
+                  <option key={grp} value={grp}>{grp}</option>
+                ))
               ) : (
                 <option value="General">General</option>
               )}

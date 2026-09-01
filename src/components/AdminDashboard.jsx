@@ -17,8 +17,8 @@ import ScholasticBaseLogo from './ScholasticBaseLogo.jsx';
 import SafeImage from './SafeImage.jsx';
 import { getNotices, addNotice, deleteNotices as deleteNoticesStorage, subscribeToNoticeUpdates, normalizeRoles } from '../utils/noticeStorage.js';
 import { convertToWebP } from '../utils/imageOptimizer.js';
-import { storage } from '../firebase/firebase.js';
 import SectionErrorBoundary from './SectionErrorBoundary.jsx';
+import { BaseSkeleton, CardSkeleton, TableSkeleton } from './SkeletonLoader.jsx';
 
 /* ──────────────────────────────────────────
    SVG Icons
@@ -1547,11 +1547,11 @@ export default function AdminDashboard() {
                 </div>
                 <div className="ov-chip">
                   <span>🏫</span>
-                  <span>{classes.length} {lang === 'bn' ? 'মোট শ্রেণী' : 'Total Classes'}</span>
+                  <span>{hasLoadedRemote ? `${classes.length} ${lang === 'bn' ? 'মোট শ্রেণী' : 'Total Classes'}` : <BaseSkeleton width="75px" height="14px" style={{ display: 'inline-block' }} />}</span>
                 </div>
                 <div className="ov-chip">
                   <span>🔑</span>
-                  <span>{Object.keys(registeredAccounts).length} {lang === 'bn' ? 'সক্রিয় ব্যবহারকারী' : 'Active Credentials'}</span>
+                  <span>{hasLoadedRemote ? `${Object.keys(registeredAccounts).length} ${lang === 'bn' ? 'সক্রিয় ব্যবহারকারী' : 'Active Credentials'}` : <BaseSkeleton width="85px" height="14px" style={{ display: 'inline-block' }} />}</span>
                 </div>
               </div>
             </div>
@@ -1569,7 +1569,9 @@ export default function AdminDashboard() {
                   <span className="ov-stat-arrow">→</span>
                 </div>
                 <div>
-                  <div className="ov-stat-value">{totalTeachers}</div>
+                  <div className="ov-stat-value">
+                    {hasLoadedRemote ? totalTeachers : <BaseSkeleton width="36px" height="28px" borderRadius="6px" />}
+                  </div>
                   <div className="ov-stat-label">{lang === 'bn' ? 'মোট শিক্ষক' : 'Total Teachers'}</div>
                   <div className="ov-stat-tag">✓ {lang === 'bn' ? 'শিক্ষক তালিকা' : 'Faculty Roster'}</div>
                 </div>
@@ -1586,7 +1588,9 @@ export default function AdminDashboard() {
                   <span className="ov-stat-arrow">→</span>
                 </div>
                 <div>
-                  <div className="ov-stat-value">{totalStudents}</div>
+                  <div className="ov-stat-value">
+                    {hasLoadedRemote ? totalStudents : <BaseSkeleton width="48px" height="28px" borderRadius="6px" />}
+                  </div>
                   <div className="ov-stat-label">{lang === 'bn' ? 'মোট শিক্ষার্থী' : 'Total Students'}</div>
                   <div className="ov-stat-tag">● {lang === 'bn' ? 'সক্রিয় ডিরেক্টরি' : 'Active Directory'}</div>
                 </div>
@@ -1603,7 +1607,9 @@ export default function AdminDashboard() {
                   <span className="ov-stat-arrow">→</span>
                 </div>
                 <div>
-                  <div className="ov-stat-value">{totalExams}</div>
+                  <div className="ov-stat-value">
+                    {hasLoadedRemote ? totalExams : <BaseSkeleton width="36px" height="28px" borderRadius="6px" />}
+                  </div>
                   <div className="ov-stat-label">{lang === 'bn' ? 'নির্ধারিত পরীক্ষা' : 'Exams Scheduled'}</div>
                   <div className="ov-stat-tag">📝 {lang === 'bn' ? 'পরীক্ষার সময়সূচী' : 'Test Schedules'}</div>
                 </div>
@@ -1620,7 +1626,9 @@ export default function AdminDashboard() {
                   <span className="ov-stat-arrow">→</span>
                 </div>
                 <div>
-                  <div className="ov-stat-value">{Object.keys(registeredAccounts).length}</div>
+                  <div className="ov-stat-value">
+                    {hasLoadedRemote ? Object.keys(registeredAccounts).length : <BaseSkeleton width="36px" height="28px" borderRadius="6px" />}
+                  </div>
                   <div className="ov-stat-label">{lang === 'bn' ? 'নিবন্ধিত অ্যাকাউন্ট' : 'Registered Logins'}</div>
                   <div className="ov-stat-tag">⚡ {lang === 'bn' ? 'ব্যবহারকারী তথ্য' : 'Provision Credentials'}</div>
                 </div>
@@ -2207,7 +2215,9 @@ export default function AdminDashboard() {
             )}
 
             {/* Teacher Cards Grid */}
-            {filteredTeachers.length === 0 ? (
+            {!hasLoadedRemote ? (
+              <CardSkeleton count={4} height={140} />
+            ) : filteredTeachers.length === 0 ? (
               <div className="tp-teachers-empty-state">
                 <div className="tp-empty-icon">👨‍🏫</div>
                 <h3>{teacherSearch ? 'No matching teachers found' : 'No teachers added yet'}</h3>
@@ -2555,7 +2565,7 @@ export default function AdminDashboard() {
                             <>
                               <p className="tp-class-card-title" style={{ fontSize: 13.5, lineHeight: 1.35, margin: 0, fontWeight: 700, color: '#1a2e4a' }}>{branch.name}</p>
                               <p className="tp-class-card-count" style={{ color: branch.color, margin: '2px 0 0', fontSize: 12 }}>
-                                {branchClasses.length} Classes · {totalStudents} Students
+                                {hasLoadedRemote ? `${branchClasses.length} Classes · ${totalStudents} Students` : <BaseSkeleton width="120px" height="13px" style={{ display: 'inline-block' }} />}
                               </p>
                             </>
                           )}

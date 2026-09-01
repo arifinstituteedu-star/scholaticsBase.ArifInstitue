@@ -1,7 +1,6 @@
 import React, { useEffect, useState, Component } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getResultsForStudent, subscribeToTeacherPanelData } from '../firebase/firestoreSchema.js';
-import { getLocalResults, saveLocalResults } from '../firebase/localPersistence.js';
 import { getBangladeshGradeInfo } from '../utils/bangladeshGrading.js';
 import { useSchoolProfile } from '../context/SchoolProfileContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
@@ -1033,14 +1032,7 @@ function StudentViewContent() {
   }, [activeSchoolId]);
 
   // Results state
-  const [results, setResults] = useState(() => {
-    try {
-      const cached = getLocalResults();
-      return (activeUser?.userId && cached[activeUser.userId]) ? cached[activeUser.userId] : [];
-    } catch {
-      return [];
-    }
-  });
+  const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -1086,12 +1078,9 @@ function StudentViewContent() {
         try {
           const marks = await getResultsForStudent(activeUser.userId);
           setResults(marks || []);
-          const stored = getLocalResults() || {};
-          saveLocalResults({ ...stored, [activeUser.userId]: marks || [] });
         } catch {
-          const stored = getLocalResults() || {};
-          setResults(stored[activeUser?.userId] || []);
-          setError('Unable to load live results. Displaying cached data.');
+          setResults([]);
+          setError('Unable to load live results. Please check your network connection.');
         } finally {
           setLoading(false);
         }

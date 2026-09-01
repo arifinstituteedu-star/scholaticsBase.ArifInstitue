@@ -4,8 +4,6 @@ import { getAnalytics, isSupported } from "firebase/analytics";
 import {
   initializeFirestore,
   getFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
   memoryLocalCache,
 } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
@@ -34,22 +32,18 @@ if (missingKeys.length > 0) {
 // Singleton guard: reuse existing app if already initialized (prevents Vite HMR re-init crash)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firestore with persistent offline IndexedDB cache enabled (with multi-tab support)
+// Initialize Firestore with in-memory cache only (disables persistent IndexedDB local cache)
 let db;
 try {
   db = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager(),
-    }),
+    localCache: memoryLocalCache(),
   });
 } catch {
-  // Safe fallback if Firestore was already initialized or tab locking fails
+  // Safe fallback if Firestore was already initialized
   try {
     db = getFirestore(app);
-  } catch {
-    db = initializeFirestore(app, {
-      localCache: memoryLocalCache(),
-    });
+  } catch (err) {
+    console.error('[Firebase Firestore] Init error:', err);
   }
 }
 

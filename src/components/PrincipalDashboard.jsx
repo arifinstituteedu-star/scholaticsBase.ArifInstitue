@@ -14,6 +14,7 @@ import SectionErrorBoundary from './SectionErrorBoundary.jsx';
 import NotificationBell from './NotificationBell.jsx';
 import SafeImage from './SafeImage.jsx';
 import AddNoticeModal from './AddNoticeModal.jsx';
+import { BaseSkeleton, CardSkeleton, TableSkeleton } from './SkeletonLoader.jsx';
 
 /* ─────────────────────────────────────────────────────────────
    Branch display order
@@ -425,8 +426,11 @@ export default function PrincipalDashboard() {
   }, [activeSchoolId]);
 
   // Dynamic Class Synchronization
+  const [hasLoadedRemote, setHasLoadedRemote] = useState(false);
+
   useEffect(() => {
     let active = true;
+    setHasLoadedRemote(false);
 
     const cachedClasses = readStorage('teacherPanelClasses', null, activeSchoolId);
     const cachedTeachers = readStorage('teacherPanelTeachers', null, activeSchoolId);
@@ -446,6 +450,7 @@ export default function PrincipalDashboard() {
           writeStorage('teacherPanelTeachers', remoteData.teachers, activeSchoolId);
         }
       }
+      setHasLoadedRemote(true);
     }, (err) => {
       console.warn('PrincipalDashboard Firestore listener failed:', err);
       try {
@@ -454,6 +459,7 @@ export default function PrincipalDashboard() {
         if (raw) setClasses(raw);
         if (rawTeachers) setTeachers(rawTeachers);
       } catch { }
+      setHasLoadedRemote(true);
     }, activeSchoolId);
 
     return () => {
@@ -887,25 +893,31 @@ export default function PrincipalDashboard() {
                     <p>Browse all students across the three institutional branches.</p>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                    <p style={{ fontSize: 28, fontWeight: 800, color: '#7c3aed', margin: 0 }}>{totalStudents}</p>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: '#7c3aed', margin: 0, minHeight: 34 }}>
+                      {hasLoadedRemote ? totalStudents : <BaseSkeleton width="50px" height="30px" borderRadius="6px" />}
+                    </div>
                     <p style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', margin: 0, textTransform: 'uppercase', letterSpacing: '.05em' }}>Total Students</p>
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 20 }}>
-                  {getActiveBranchKeys(schoolProfile).map(key => {
-                    const branch = SCHOOL_BRANCHES[key];
-                    const metrics = branchMetrics[key];
-                    return (
-                      <BranchCard
-                        key={key}
-                        branch={branch}
-                        classCount={metrics.classCount}
-                        studentCount={metrics.studentCount}
-                        onClick={() => { setSelectedBranchKey(key); setSelectedClassIdx(null); }}
-                      />
-                    );
-                  })}
-                </div>
+                {!hasLoadedRemote ? (
+                  <CardSkeleton count={3} height={150} />
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 20 }}>
+                    {getActiveBranchKeys(schoolProfile).map(key => {
+                      const branch = SCHOOL_BRANCHES[key];
+                      const metrics = branchMetrics[key];
+                      return (
+                        <BranchCard
+                          key={key}
+                          branch={branch}
+                          classCount={metrics.classCount}
+                          studentCount={metrics.studentCount}
+                          onClick={() => { setSelectedBranchKey(key); setSelectedClassIdx(null); }}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
               </>
             )}
 
@@ -926,12 +938,14 @@ export default function PrincipalDashboard() {
                     </p>
                     <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#fff' }}>{SCHOOL_BRANCHES[selectedBranchKey].name}</h2>
                     <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
-                      {branchMetrics[selectedBranchKey].classCount} Classes · {branchMetrics[selectedBranchKey].studentCount} Students
+                      {hasLoadedRemote ? `${branchMetrics[selectedBranchKey].classCount} Classes · ${branchMetrics[selectedBranchKey].studentCount} Students` : <BaseSkeleton width="120px" height="13px" />}
                     </p>
                   </div>
                 </div>
 
-                {branchClasses.length === 0 ? (
+                {!hasLoadedRemote ? (
+                  <CardSkeleton count={4} height={140} />
+                ) : branchClasses.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '60px 24px', color: '#94a3b8' }}>
                     <div style={{ fontSize: 40, marginBottom: 12 }}>🏫</div>
                     <p style={{ fontWeight: 700, fontSize: 15, margin: 0 }}>No classes in this branch yet</p>

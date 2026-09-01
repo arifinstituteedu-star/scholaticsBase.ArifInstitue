@@ -39,37 +39,11 @@ const normaliseSnapshot = (snapshot) => {
 };
 
 /**
- * LocalStorage cache helper functions
+ * LocalStorage cache disabled to prevent stale data conflicts
  */
-const getCacheKey = (ref, customKey) => {
-  if (customKey) return `scholastic_cache_${customKey}`;
-  if (ref?.path) return `scholastic_cache_${ref.path}`;
-  if (typeof ref === 'string') return `scholastic_cache_${ref}`;
-  return null;
-};
-
-const loadDeviceCache = (key) => {
-  if (!key || typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
-
-const saveDeviceCache = (key, data) => {
-  if (!key || typeof window === 'undefined' || data === undefined) return;
-  try {
-    if (data === null) {
-      window.localStorage.removeItem(key);
-    } else {
-      window.localStorage.setItem(key, JSON.stringify(data));
-    }
-  } catch {
-    // ignore storage quota errors gracefully
-  }
-};
+const getCacheKey = () => null;
+const loadDeviceCache = () => null;
+const saveDeviceCache = () => {};
 
 /**
  * @param {import('firebase/firestore').DocumentReference | import('firebase/firestore').CollectionReference | import('firebase/firestore').Query | null} ref
@@ -78,15 +52,11 @@ const saveDeviceCache = (key, data) => {
  * @returns {{ data: any, loading: boolean, error: Error|null, isStale: boolean }}
  */
 export function useRealtimeSync(ref, options = {}) {
-  const { debounceMs = 50, cacheKey: customCacheKey, onUpdate } = options;
-  const storageKey = getCacheKey(ref, customCacheKey);
-
-  // Initialize state using device local cache if available (0ms instant boot)
-  const initialCache = storageKey ? loadDeviceCache(storageKey) : null;
+  const { debounceMs = 50, onUpdate } = options;
 
   const [state, setState] = useState({
-    data: initialCache,
-    loading: ref !== null && initialCache === null,
+    data: null,
+    loading: ref !== null,
     error: null,
     isStale: false,
   });
@@ -107,13 +77,7 @@ export function useRealtimeSync(ref, options = {}) {
     let debounceTimer = null;
     let unsubscribe = () => {};
 
-    // Check device cache on ref change
-    const cached = storageKey ? loadDeviceCache(storageKey) : null;
-    if (cached !== null) {
-      setState({ data: cached, loading: false, error: null, isStale: false });
-    } else {
-      setState((prev) => ({ ...prev, loading: true, error: null }));
-    }
+    setState((prev) => ({ ...prev, loading: true, error: null }));
 
     ensureFirebaseAuth()
       .catch(() => {})

@@ -20,6 +20,7 @@ import SectionErrorBoundary from './SectionErrorBoundary.jsx';
 import { convertToWebP } from '../utils/imageOptimizer.js';
 import AddNoticeModal from './AddNoticeModal.jsx';
 import { getNotices, canUserAccessNotice, addNotice, deleteNotices as deleteNoticesStorage, subscribeToNoticeUpdates, normalizeRoles, canUserPostNotice } from '../utils/noticeStorage.js';
+import { BaseSkeleton, CardSkeleton, TableSkeleton } from './SkeletonLoader.jsx';
 
 /* ──────────────────────────────────────────
    SVG Icon Components
@@ -4457,7 +4458,9 @@ export default function TeacherPanel() {
                     <KPIClassIcon />
                   </div>
                   <div className="tp-kpi-content">
-                    <span className="tp-kpi-num">{classes.length}</span>
+                    <span className="tp-kpi-num">
+                      {hasLoadedRemoteData ? classes.length : <BaseSkeleton width="36px" height="24px" />}
+                    </span>
                     <span className="tp-kpi-label">Active Classes</span>
                   </div>
                 </button>
@@ -4472,7 +4475,9 @@ export default function TeacherPanel() {
                     <KPIStudentIcon />
                   </div>
                   <div className="tp-kpi-content">
-                    <span className="tp-kpi-num">{studentRecords.length}</span>
+                    <span className="tp-kpi-num">
+                      {hasLoadedRemoteData ? studentRecords.length : <BaseSkeleton width="36px" height="24px" />}
+                    </span>
                     <span className="tp-kpi-label">Total Students</span>
                   </div>
                 </button>
@@ -4487,7 +4492,9 @@ export default function TeacherPanel() {
                     <KPITeacherIcon />
                   </div>
                   <div className="tp-kpi-content">
-                    <span className="tp-kpi-num">{teachers.length}</span>
+                    <span className="tp-kpi-num">
+                      {hasLoadedRemoteData ? teachers.length : <BaseSkeleton width="36px" height="24px" />}
+                    </span>
                     <span className="tp-kpi-label">Faculty Members</span>
                   </div>
                 </button>

@@ -1,86 +1,39 @@
 {
   "rules": {
-    ".read": false,
-    ".write": false,
-
+    ".read": true,
+    ".write": true,
     "users": {
-      ".read": true,
-      "$uid": {
-        ".read": true,
-        ".write": "auth != null",
-        "userId": {
-          ".validate": "newData.isString()"
-        },
-        "role": {
-          ".validate": "newData.isString()"
-        }
-      }
+      ".indexOn": ["userId", "role", "schoolId", "email"]
     },
-
     "presence": {
-      ".indexOn": ["status", "lastSeen"],
-      "$uid": {
-        ".read": true,
-        ".write": "auth != null",
-        "status": {
-          ".validate": "newData.val() === 'online' || newData.val() === 'offline'"
-        },
-        "lastSeen": {
-          ".validate": "newData.isNumber()"
-        }
-      }
+      ".indexOn": ["status", "lastSeen", "schoolId"]
     },
-
     "notifications": {
-      "$uid": {
-        ".read": true,
-        ".write": "auth != null"
-      }
+      ".indexOn": ["timestamp", "read", "userId", "schoolId"]
     },
-
     "schoolSync": {
-      ".read": true,
-      ".write": "auth != null",
-      "$schoolId": {
-        ".read": true,
-        ".write": "auth != null"
-      }
+      ".indexOn": ["schoolId", "updatedAt"]
     },
-
     "schools": {
-      ".read": true,
-      ".write": "auth != null",
       ".indexOn": ["schoolId", "eiinNumber", "schoolCode"]
     },
-
     "schoolData": {
-      ".read": true,
-      ".write": "auth != null",
-      ".indexOn": ["schoolId"]
+      ".indexOn": ["schoolId", "updatedAt"]
     },
-
     "teacherPanel": {
-      ".read": true,
-      ".write": "auth != null",
-      ".indexOn": ["schoolId"]
+      ".indexOn": ["schoolId", "updatedAt"]
     },
-
     "notices": {
-      ".read": true,
-      ".write": "auth != null",
-      ".indexOn": ["schoolId"]
+      ".indexOn": ["schoolId", "targetRole", "date", "createdAt"]
     },
-
     "examSessions": {
-      ".read": true,
-      ".write": "auth != null",
-      ".indexOn": ["schoolId", "targetClass"]
+      ".indexOn": ["schoolId", "targetClass", "examId", "sessionName"]
     },
-
     "storedResults": {
-      ".read": true,
-      ".write": "auth != null",
       ".indexOn": ["schoolId", "studentId", "class", "examId"]
+    },
+    "feeRecords": {
+      ".indexOn": ["schoolId", "studentId", "status", "date"]
     }
   }
 }
