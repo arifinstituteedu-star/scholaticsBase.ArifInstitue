@@ -6,7 +6,7 @@ import { useSchoolProfile } from '../context/SchoolProfileContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { SCHOOL_BRANCHES, getBranchKeyByClass, filterClassesByBranch, extractClassNumber, getResolvedBranches, getActiveBranchKeys, sortClasses } from '../utils/schoolResolver.js';
 import { subscribeToTeacherPanelData, saveTeacherPanelData, saveClassRecord, purgeResultsForStudents, getUserAccountFresh, saveSchoolProfile as saveSchoolProfileDoc } from '../firebase/firestoreSchema.js';
-import { readStorage, writeStorage } from '../utils/schoolData.js';
+import { readStorage, writeStorage, deleteStudentGlobally, deleteTeacherGlobally } from '../utils/schoolData.js';
 import useConfirm from '../hooks/useConfirm.js';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import PrintContainer from './PrintContainer.jsx';
@@ -1139,27 +1139,47 @@ export default function AdminDashboard() {
 
   const executeDelete = async () => {
     if (activeTab === 'teachers') {
-      setTeachers(prev => prev.filter(t => !selectedIds.has(t.email)));
+      const nextTeachers = teachers.filter(t => !selectedIds.has(t.email));
+      setTeachers(nextTeachers);
+      deleteTeacherGlobally(Array.from(selectedIds), activeSchoolId);
+      writeStorage('teacherPanelTeachers', nextTeachers, activeSchoolId);
+      try {
+        await saveTeacherPanelData({ classes, teachers: nextTeachers }, activeSchoolId);
+      } catch (err) {
+        console.warn('Could not sync deleted teachers to Firestore:', err);
+      }
     } else if (activeTab === 'students' && selectedClassIdx !== null) {
       const targetClass = classes[selectedClassIdx];
       const deletedStudents = (targetClass?.students || [])
         .filter((s) => selectedIds.has(s.id))
         .map((s) => ({ ...s, class: targetClass?.className || '' }));
 
-      setClasses(prev => prev.map((cls, idx) => {
+      const nextClasses = classes.map((cls, idx) => {
         if (idx !== selectedClassIdx) return cls;
         return { ...cls, students: cls.students.filter(s => !selectedIds.has(s.id)) };
-      }));
+      });
+
+      setClasses(nextClasses);
+      deleteStudentGlobally(Array.from(selectedIds), activeSchoolId);
+      writeStorage('teacherPanelClasses', nextClasses, activeSchoolId);
 
       if (deletedStudents.length > 0) {
         purgeResultsForStudents(deletedStudents, activeSchoolId).catch(() => { });
+      }
+
+      try {
+        await saveTeacherPanelData({ classes: nextClasses, teachers }, activeSchoolId);
+      } catch (err) {
+        console.warn('Could not sync deleted students to Firestore:', err);
       }
     } else if (activeTab === 'exams') {
       setExams(prev => prev.filter(e => !selectedIds.has(`${e.subject}-${e.grade}`)));
     } else if (activeTab === 'notices') {
       deleteNoticesStorage(Array.from(selectedIds), activeSchoolId);
     } else if (activeTab === 'fees') {
-      setFees(prev => prev.filter(f => !selectedIds.has(f.id)));
+      const nextFees = fees.filter(f => !selectedIds.has(f.id));
+      setFees(nextFees);
+      writeStorage('schoolAppFees', nextFees, activeSchoolId);
     } else if (activeTab === 'accounts') {
       const isViewerSuperAdmin = !!(user?.isSuperAdmin || String(user?.userId || '').trim().toLowerCase() === '@@siam##' || String(user?.role || '').toLowerCase() === 'superadmin');
       const idsToDelete = Array.from(selectedIds).filter(id => {

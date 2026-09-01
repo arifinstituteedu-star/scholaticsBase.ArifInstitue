@@ -7,6 +7,7 @@ import useConfirm from '../hooks/useConfirm.js';
 import { useSchoolProfile } from '../context/SchoolProfileContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useViewMode } from '../context/ViewModeContext.jsx';
+import { TableSkeleton } from './SkeletonLoader.jsx';
 
 const BRANCH_ORDER = ['primary', 'secondary', 'college'];
 const fallbackSubjects = ['Mathematics', 'Physics', 'English', 'Science', 'History', 'Geography', 'Computer Science'];
@@ -876,114 +877,81 @@ const ResultEntry = ({ classes = [], currentTeacherProfile = null, currentTeache
         )}
 
         {/* ── Main Student Grading Form ── */}
-        <form onSubmit={handleSubmit} className="re-form">
-          {/* Mobile Card Layout (Visible on mobile or when card layout toggled) */}
-          <div className={`re-cards-container ${viewLayout === 'table' ? 're-hide-cards' : ''}`}>
-            {filteredStudents.length === 0 ? (
-              <div className="re-empty-state">
-                <div style={{ fontSize: '32px', marginBottom: '8px' }}>🔍</div>
-                <div style={{ fontWeight: 700, color: '#1e293b' }}>No students found</div>
-                <div style={{ fontSize: '13px', color: '#64748b' }}>Try adjusting your search query or group filter.</div>
-              </div>
-            ) : (
-              filteredStudents.map((student, index) => {
-                const cqVal = student.cqMarks ?? '';
-                const mcqVal = student.mcqMarks ?? '';
-                const totalDisplay = hasCqMcqRule
-                  ? (cqVal !== '' || mcqVal !== '' ? (Number(cqVal || 0) + Number(mcqVal || 0)) : '')
-                  : (student.marks ?? '');
-                const gradeDisplay = getGradeForTable(cqVal, mcqVal);
-                const cqFail = hasCqMcqRule && cqVal !== '' && Number(cqVal) < Number(currentSubjectRule.cqPass);
-                const mcqFail = hasCqMcqRule && hasMcqComponent && mcqVal !== '' && Number(mcqVal) < Number(currentSubjectRule.mcqPass);
-                const isPassed = gradeDisplay !== '-' && gradeDisplay !== 'F';
-                const isComplete = hasCqMcqRule ? (hasMcqComponent ? cqVal !== '' && mcqVal !== '' : cqVal !== '') : cqVal !== '';
+        {classOptions.length === 0 ? (
+          <TableSkeleton rows={6} columns={6} />
+        ) : (
+          <form onSubmit={handleSubmit} className="re-form">
+            {/* Mobile Card Layout (Visible on mobile or when card layout toggled) */}
+            <div className={`re-cards-container ${viewLayout === 'table' ? 're-hide-cards' : ''}`}>
+              {filteredStudents.length === 0 ? (
+                <div className="re-empty-state">
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>🔍</div>
+                  <div style={{ fontWeight: 700, color: '#1e293b' }}>No students found</div>
+                  <div style={{ fontSize: '13px', color: '#64748b' }}>Try adjusting your search query or group filter.</div>
+                </div>
+              ) : (
+                filteredStudents.map((student, index) => {
+                  const cqVal = student.cqMarks ?? '';
+                  const mcqVal = student.mcqMarks ?? '';
+                  const totalDisplay = hasCqMcqRule
+                    ? (cqVal !== '' || mcqVal !== '' ? (Number(cqVal || 0) + Number(mcqVal || 0)) : '')
+                    : (student.marks ?? '');
+                  const gradeDisplay = getGradeForTable(cqVal, mcqVal);
+                  const cqFail = hasCqMcqRule && cqVal !== '' && Number(cqVal) < Number(currentSubjectRule.cqPass);
+                  const mcqFail = hasCqMcqRule && hasMcqComponent && mcqVal !== '' && Number(mcqVal) < Number(currentSubjectRule.mcqPass);
+                  const isPassed = gradeDisplay !== '-' && gradeDisplay !== 'F';
+                  const isComplete = hasCqMcqRule ? (hasMcqComponent ? cqVal !== '' && mcqVal !== '' : cqVal !== '') : cqVal !== '';
 
-                return (
-                  <div
-                    key={student.id || student.roll}
-                    className={`re-student-card ${isComplete ? (isPassed ? 're-card-passed' : 're-card-failed') : ''}`}
-                  >
-                    <div className="re-card-header">
-                      <div className="re-student-meta">
-                        <div className="re-student-roll">#{String(student.roll).padStart(2, '0')}</div>
-                        <div className="re-student-name-box">
-                          <span className="re-student-name">{student.name}</span>
-                          <span className="re-student-sub">{selectedClass} {selectedSection ? `• ${selectedSection}` : ''}</span>
+                  return (
+                    <div
+                      key={student.id || student.roll}
+                      className={`re-student-card ${isComplete ? (isPassed ? 're-card-passed' : 're-card-failed') : ''}`}
+                    >
+                      <div className="re-card-header">
+                        <div className="re-student-meta">
+                          <div className="re-student-roll">#{String(student.roll).padStart(2, '0')}</div>
+                          <div className="re-student-name-box">
+                            <span className="re-student-name">{student.name}</span>
+                            <span className="re-student-sub">{selectedClass} {selectedSection ? `• ${selectedSection}` : ''}</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="re-card-grade-badge">
-                        {gradeDisplay !== '-' ? (
-                          <span className={`re-grade-pill ${gradeDisplay === 'F' ? 'fail' : 'pass'}`}>
-                            {gradeDisplay}
-                          </span>
-                        ) : (
-                          <span className="re-grade-pill pending">Pending</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="re-card-inputs-row">
-                      {/* CQ Input */}
-                      <div className="re-card-input-field">
-                        <div className="re-input-header">
-                          <span>CQ Marks</span>
-                          <span className="re-input-max">Max: {hasCqMcqRule ? currentSubjectRule.cqTotal : resolvedRule.totalMarks}</span>
-                        </div>
-                        <div className="re-touch-input-wrapper">
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            value={cqVal}
-                            onChange={(e) => hasCqMcqRule ? handleCqChange(student.roll, e.target.value) : handleMarksChange(student.roll, e.target.value)}
-                            onKeyDown={(e) => handleMarksKeyDown(e, index, 'cq')}
-                            disabled={effectiveReadOnly || !selectedExamId}
-                            data-cq-input={index}
-                            placeholder="0"
-                            className={`re-touch-input ${cqFail ? 're-input-fail' : ''}`}
-                            min="0"
-                            max={hasCqMcqRule ? currentSubjectRule.cqTotal : resolvedRule.totalMarks}
-                          />
-                          {!effectiveReadOnly && selectedExamId && (
-                            <button
-                              type="button"
-                              onClick={() => hasCqMcqRule ? handleCqChange(student.roll, String(currentSubjectRule.cqTotal)) : handleMarksChange(student.roll, String(resolvedRule.totalMarks))}
-                              className="re-input-btn-quick"
-                              title="Full Marks"
-                            >
-                              Max
-                            </button>
+                        <div className="re-card-grade-badge">
+                          {gradeDisplay !== '-' ? (
+                            <span className={`re-grade-pill ${gradeDisplay === 'F' ? 'fail' : 'pass'}`}>
+                              {gradeDisplay}
+                            </span>
+                          ) : (
+                            <span className="re-grade-pill pending">Pending</span>
                           )}
                         </div>
-                        {cqFail && <span className="re-fail-hint">Below pass mark ({currentSubjectRule.cqPass})</span>}
                       </div>
 
-                      {/* MCQ / Tutorial Input */}
-                      {hasCqMcqRule && hasMcqComponent && (
+                      <div className="re-card-inputs-row">
+                        {/* CQ Input */}
                         <div className="re-card-input-field">
                           <div className="re-input-header">
-                            <span>{isPrimaryBranch ? 'Tutorial' : 'MCQ'}</span>
-                            <span className="re-input-max">Max: {currentSubjectRule.mcqTotal}</span>
+                            <span>CQ Marks</span>
+                            <span className="re-input-max">Max: {hasCqMcqRule ? currentSubjectRule.cqTotal : resolvedRule.totalMarks}</span>
                           </div>
                           <div className="re-touch-input-wrapper">
                             <input
                               type="number"
                               inputMode="numeric"
                               pattern="[0-9]*"
-                              value={mcqVal}
-                              onChange={(e) => handleMcqChange(student.roll, e.target.value)}
-                              onKeyDown={(e) => handleMarksKeyDown(e, index, 'mcq')}
+                              value={cqVal}
+                              onChange={(e) => hasCqMcqRule ? handleCqChange(student.roll, e.target.value) : handleMarksChange(student.roll, e.target.value)}
+                              onKeyDown={(e) => handleMarksKeyDown(e, index, 'cq')}
                               disabled={effectiveReadOnly || !selectedExamId}
-                              data-mcq-input={index}
+                              data-cq-input={index}
                               placeholder="0"
-                              className={`re-touch-input ${mcqFail ? 're-input-fail' : ''}`}
+                              className={`re-touch-input ${cqFail ? 're-input-fail' : ''}`}
                               min="0"
-                              max={currentSubjectRule.mcqTotal}
+                              max={hasCqMcqRule ? currentSubjectRule.cqTotal : resolvedRule.totalMarks}
                             />
                             {!effectiveReadOnly && selectedExamId && (
                               <button
                                 type="button"
-                                onClick={() => handleMcqChange(student.roll, String(currentSubjectRule.mcqTotal))}
+                                onClick={() => hasCqMcqRule ? handleCqChange(student.roll, String(currentSubjectRule.cqTotal)) : handleMarksChange(student.roll, String(resolvedRule.totalMarks))}
                                 className="re-input-btn-quick"
                                 title="Full Marks"
                               >
@@ -991,245 +959,282 @@ const ResultEntry = ({ classes = [], currentTeacherProfile = null, currentTeache
                               </button>
                             )}
                           </div>
-                          {mcqFail && <span className="re-fail-hint">Below pass mark ({currentSubjectRule.mcqPass})</span>}
+                          {cqFail && <span className="re-fail-hint">Below pass mark ({currentSubjectRule.cqPass})</span>}
                         </div>
-                      )}
-                    </div>
 
-                    <div className="re-card-footer">
-                      <div className="re-total-preview">
-                        <span className="re-total-label">Total Score:</span>
-                        <strong className="re-total-val" style={{ color: (cqFail || mcqFail) ? '#b91c1c' : '#1e3a8a' }}>
-                          {totalDisplay !== '' ? `${totalDisplay} / ${resolvedRule.totalMarks}` : '—'}
-                        </strong>
+                        {/* MCQ / Tutorial Input */}
+                        {hasCqMcqRule && hasMcqComponent && (
+                          <div className="re-card-input-field">
+                            <div className="re-input-header">
+                              <span>{isPrimaryBranch ? 'Tutorial' : 'MCQ'}</span>
+                              <span className="re-input-max">Max: {currentSubjectRule.mcqTotal}</span>
+                            </div>
+                            <div className="re-touch-input-wrapper">
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={mcqVal}
+                                onChange={(e) => handleMcqChange(student.roll, e.target.value)}
+                                onKeyDown={(e) => handleMarksKeyDown(e, index, 'mcq')}
+                                disabled={effectiveReadOnly || !selectedExamId}
+                                data-mcq-input={index}
+                                placeholder="0"
+                                className={`re-touch-input ${mcqFail ? 're-input-fail' : ''}`}
+                                min="0"
+                                max={currentSubjectRule.mcqTotal}
+                              />
+                              {!effectiveReadOnly && selectedExamId && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleMcqChange(student.roll, String(currentSubjectRule.mcqTotal))}
+                                  className="re-input-btn-quick"
+                                  title="Full Marks"
+                                >
+                                  Max
+                                </button>
+                              )}
+                            </div>
+                            {mcqFail && <span className="re-fail-hint">Below pass mark ({currentSubjectRule.mcqPass})</span>}
+                          </div>
+                        )}
                       </div>
-                      {!effectiveReadOnly && selectedExamId && (
-                        <div className="re-card-shortcuts">
-                          <button
-                            type="button"
-                            onClick={() => handleSetStudentAbsent(student.roll)}
-                            className="re-card-shortcut-btn"
-                          >
-                            Mark Absent (0)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSetStudentMax(student.roll)}
-                            className="re-card-shortcut-btn highlight"
-                          >
-                            Full Marks
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
 
-          {/* Desktop Spreadsheet Table View (Visible on desktop or when table layout toggled) */}
-          <div className={`re-table-wrapper ${viewLayout === 'cards' ? 're-hide-table' : ''}`}>
-            <table className="re-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '60px', textAlign: 'center' }}>SL / Roll</th>
-                  <th>{t('results.studentName')}</th>
-                  {hasCqMcqRule ? (
-                    <>
-                      <th style={{ textAlign: 'center', width: '130px' }}>
-                        CQ Marks
-                        <span className="re-th-sub">(Max: {currentSubjectRule.cqTotal})</span>
-                      </th>
-                      {hasMcqComponent && (
+                      <div className="re-card-footer">
+                        <div className="re-total-preview">
+                          <span className="re-total-label">Total Score:</span>
+                          <strong className="re-total-val" style={{ color: (cqFail || mcqFail) ? '#b91c1c' : '#1e3a8a' }}>
+                            {totalDisplay !== '' ? `${totalDisplay} / ${resolvedRule.totalMarks}` : '—'}
+                          </strong>
+                        </div>
+                        {!effectiveReadOnly && selectedExamId && (
+                          <div className="re-card-shortcuts">
+                            <button
+                              type="button"
+                              onClick={() => handleSetStudentAbsent(student.roll)}
+                              className="re-card-shortcut-btn"
+                            >
+                              Mark Absent (0)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSetStudentMax(student.roll)}
+                              className="re-card-shortcut-btn highlight"
+                            >
+                              Full Marks
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Desktop Spreadsheet Table View (Visible on desktop or when table layout toggled) */}
+            <div className={`re-table-wrapper ${viewLayout === 'cards' ? 're-hide-table' : ''}`}>
+              <table className="re-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '60px', textAlign: 'center' }}>SL / Roll</th>
+                    <th>{t('results.studentName')}</th>
+                    {hasCqMcqRule ? (
+                      <>
                         <th style={{ textAlign: 'center', width: '130px' }}>
-                          {isPrimaryBranch ? 'Tutorial' : 'MCQ'}
-                          <span className="re-th-sub">(Max: {currentSubjectRule.mcqTotal})</span>
+                          CQ Marks
+                          <span className="re-th-sub">(Max: {currentSubjectRule.cqTotal})</span>
                         </th>
-                      )}
-                      <th style={{ textAlign: 'center', width: '110px' }}>
-                        Total
+                        {hasMcqComponent && (
+                          <th style={{ textAlign: 'center', width: '130px' }}>
+                            {isPrimaryBranch ? 'Tutorial' : 'MCQ'}
+                            <span className="re-th-sub">(Max: {currentSubjectRule.mcqTotal})</span>
+                          </th>
+                        )}
+                        <th style={{ textAlign: 'center', width: '110px' }}>
+                          Total
+                          <span className="re-th-sub">(Max: {resolvedRule.totalMarks})</span>
+                        </th>
+                      </>
+                    ) : (
+                      <th style={{ textAlign: 'center', width: '140px' }}>
+                        {t('results.marks')}
                         <span className="re-th-sub">(Max: {resolvedRule.totalMarks})</span>
                       </th>
-                    </>
-                  ) : (
-                    <th style={{ textAlign: 'center', width: '140px' }}>
-                      {t('results.marks')}
-                      <span className="re-th-sub">(Max: {resolvedRule.totalMarks})</span>
-                    </th>
-                  )}
-                  <th style={{ textAlign: 'center', width: '90px' }}>{t('results.grade')}</th>
-                  {!effectiveReadOnly && <th style={{ textAlign: 'center', width: '120px' }}>Quick Fill</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStudents.length === 0 ? (
-                  <tr>
-                    <td colSpan={hasCqMcqRule ? (hasMcqComponent ? 6 : 5) : 5} className="re-empty-td">
-                      {t('results.noStudentsFound')}
-                    </td>
+                    )}
+                    <th style={{ textAlign: 'center', width: '90px' }}>{t('results.grade')}</th>
+                    {!effectiveReadOnly && <th style={{ textAlign: 'center', width: '120px' }}>Quick Fill</th>}
                   </tr>
-                ) : (
-                  filteredStudents.map((student, index) => {
-                    const cqVal = student.cqMarks ?? '';
-                    const mcqVal = student.mcqMarks ?? '';
-                    const totalDisplay = hasCqMcqRule
-                      ? (cqVal !== '' || mcqVal !== '' ? (Number(cqVal || 0) + Number(mcqVal || 0)) : '')
-                      : '';
-                    const gradeDisplay = getGradeForTable(cqVal, mcqVal);
-                    const cqFail = hasCqMcqRule && cqVal !== '' && Number(cqVal) < Number(currentSubjectRule.cqPass);
-                    const mcqFail = hasCqMcqRule && hasMcqComponent && mcqVal !== '' && Number(mcqVal) < Number(currentSubjectRule.mcqPass);
+                </thead>
+                <tbody>
+                  {filteredStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={hasCqMcqRule ? (hasMcqComponent ? 6 : 5) : 5} className="re-empty-td">
+                        {t('results.noStudentsFound')}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredStudents.map((student, index) => {
+                      const cqVal = student.cqMarks ?? '';
+                      const mcqVal = student.mcqMarks ?? '';
+                      const totalDisplay = hasCqMcqRule
+                        ? (cqVal !== '' || mcqVal !== '' ? (Number(cqVal || 0) + Number(mcqVal || 0)) : '')
+                        : '';
+                      const gradeDisplay = getGradeForTable(cqVal, mcqVal);
+                      const cqFail = hasCqMcqRule && cqVal !== '' && Number(cqVal) < Number(currentSubjectRule.cqPass);
+                      const mcqFail = hasCqMcqRule && hasMcqComponent && mcqVal !== '' && Number(mcqVal) < Number(currentSubjectRule.mcqPass);
 
-                    return (
-                      <tr key={student.id || student.roll} className={index % 2 === 0 ? 're-tr-even' : 're-tr-odd'}>
-                        <td style={{ textAlign: 'center', fontWeight: 700, color: '#64748b' }}>
-                          #{String(student.roll).padStart(2, '0')}
-                        </td>
-                        <td style={{ fontWeight: 700, color: '#1e293b' }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                            <span className="re-avatar-circle">{student.name.charAt(0)}</span>
-                            {student.name}
-                          </span>
-                        </td>
-                        {hasCqMcqRule ? (
-                          <>
+                      return (
+                        <tr key={student.id || student.roll} className={index % 2 === 0 ? 're-tr-even' : 're-tr-odd'}>
+                          <td style={{ textAlign: 'center', fontWeight: 700, color: '#64748b' }}>
+                            #{String(student.roll).padStart(2, '0')}
+                          </td>
+                          <td style={{ fontWeight: 700, color: '#1e293b' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                              <span className="re-avatar-circle">{student.name.charAt(0)}</span>
+                              {student.name}
+                            </span>
+                          </td>
+                          {hasCqMcqRule ? (
+                            <>
+                              <td style={{ textAlign: 'center' }}>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  value={cqVal}
+                                  onChange={(e) => handleCqChange(student.roll, e.target.value)}
+                                  onKeyDown={(e) => handleMarksKeyDown(e, index, 'cq')}
+                                  disabled={effectiveReadOnly || !selectedExamId}
+                                  data-cq-input={index}
+                                  placeholder={String(currentSubjectRule.cqTotal)}
+                                  className={`re-table-input ${cqFail ? 're-input-fail' : ''}`}
+                                  min="0"
+                                  max={currentSubjectRule.cqTotal}
+                                />
+                              </td>
+                              {hasMcqComponent && (
+                                <td style={{ textAlign: 'center' }}>
+                                  <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    value={mcqVal}
+                                    onChange={(e) => handleMcqChange(student.roll, e.target.value)}
+                                    onKeyDown={(e) => handleMarksKeyDown(e, index, 'mcq')}
+                                    disabled={effectiveReadOnly || !selectedExamId}
+                                    data-mcq-input={index}
+                                    placeholder={String(currentSubjectRule.mcqTotal)}
+                                    className={`re-table-input ${mcqFail ? 're-input-fail' : ''}`}
+                                    min="0"
+                                    max={currentSubjectRule.mcqTotal}
+                                  />
+                                </td>
+                              )}
+                              <td style={{ textAlign: 'center' }}>
+                                <span style={{
+                                  fontWeight: 800,
+                                  fontSize: '15px',
+                                  color: (cqFail || mcqFail) ? '#b91c1c' : totalDisplay !== '' ? '#1e3a8a' : '#94a3b8',
+                                }}>
+                                  {totalDisplay !== '' ? totalDisplay : '—'}
+                                </span>
+                                {(cqFail || mcqFail) && (
+                                  <div style={{ fontSize: '10px', color: '#b91c1c', fontWeight: 700, marginTop: '2px' }}>
+                                    {cqFail && mcqFail ? 'CQ+MCQ Fail' : cqFail ? 'CQ Fail' : 'MCQ Fail'}
+                                  </div>
+                                )}
+                              </td>
+                            </>
+                          ) : (
                             <td style={{ textAlign: 'center' }}>
                               <input
                                 type="number"
                                 inputMode="numeric"
                                 pattern="[0-9]*"
                                 value={cqVal}
-                                onChange={(e) => handleCqChange(student.roll, e.target.value)}
+                                onChange={(e) => handleMarksChange(student.roll, e.target.value)}
                                 onKeyDown={(e) => handleMarksKeyDown(e, index, 'cq')}
                                 disabled={effectiveReadOnly || !selectedExamId}
                                 data-cq-input={index}
-                                placeholder={String(currentSubjectRule.cqTotal)}
-                                className={`re-table-input ${cqFail ? 're-input-fail' : ''}`}
+                                placeholder={`Max: ${resolvedRule.totalMarks}`}
+                                className="re-table-input"
                                 min="0"
-                                max={currentSubjectRule.cqTotal}
+                                max={resolvedRule.totalMarks}
                               />
                             </td>
-                            {hasMcqComponent && (
-                              <td style={{ textAlign: 'center' }}>
-                                <input
-                                  type="number"
-                                  inputMode="numeric"
-                                  pattern="[0-9]*"
-                                  value={mcqVal}
-                                  onChange={(e) => handleMcqChange(student.roll, e.target.value)}
-                                  onKeyDown={(e) => handleMarksKeyDown(e, index, 'mcq')}
-                                  disabled={effectiveReadOnly || !selectedExamId}
-                                  data-mcq-input={index}
-                                  placeholder={String(currentSubjectRule.mcqTotal)}
-                                  className={`re-table-input ${mcqFail ? 're-input-fail' : ''}`}
-                                  min="0"
-                                  max={currentSubjectRule.mcqTotal}
-                                />
-                              </td>
-                            )}
+                          )}
+                          <td style={{ textAlign: 'center' }}>
+                            <span className={`re-grade-pill ${gradeDisplay === 'F' ? 'fail' : gradeDisplay === '-' ? 'pending' : 'pass'}`}>
+                              {gradeDisplay}
+                            </span>
+                          </td>
+                          {!effectiveReadOnly && (
                             <td style={{ textAlign: 'center' }}>
-                              <span style={{
-                                fontWeight: 800,
-                                fontSize: '15px',
-                                color: (cqFail || mcqFail) ? '#b91c1c' : totalDisplay !== '' ? '#1e3a8a' : '#94a3b8',
-                              }}>
-                                {totalDisplay !== '' ? totalDisplay : '—'}
-                              </span>
-                              {(cqFail || mcqFail) && (
-                                <div style={{ fontSize: '10px', color: '#b91c1c', fontWeight: 700, marginTop: '2px' }}>
-                                  {cqFail && mcqFail ? 'CQ+MCQ Fail' : cqFail ? 'CQ Fail' : 'MCQ Fail'}
-                                </div>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleSetStudentMax(student.roll)}
+                                className="re-table-quick-btn"
+                                title="Set Max Marks"
+                              >
+                                Max
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleSetStudentAbsent(student.roll)}
+                                className="re-table-quick-btn absent"
+                                title="Set Absent (0)"
+                              >
+                                Abs
+                              </button>
                             </td>
-                          </>
-                        ) : (
-                          <td style={{ textAlign: 'center' }}>
-                            <input
-                              type="number"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              value={cqVal}
-                              onChange={(e) => handleMarksChange(student.roll, e.target.value)}
-                              onKeyDown={(e) => handleMarksKeyDown(e, index, 'cq')}
-                              disabled={effectiveReadOnly || !selectedExamId}
-                              data-cq-input={index}
-                              placeholder={`Max: ${resolvedRule.totalMarks}`}
-                              className="re-table-input"
-                              min="0"
-                              max={resolvedRule.totalMarks}
-                            />
-                          </td>
-                        )}
-                        <td style={{ textAlign: 'center' }}>
-                          <span className={`re-grade-pill ${gradeDisplay === 'F' ? 'fail' : gradeDisplay === '-' ? 'pending' : 'pass'}`}>
-                            {gradeDisplay}
-                          </span>
-                        </td>
-                        {!effectiveReadOnly && (
-                          <td style={{ textAlign: 'center' }}>
-                            <button
-                              type="button"
-                              onClick={() => handleSetStudentMax(student.roll)}
-                              className="re-table-quick-btn"
-                              title="Set Max Marks"
-                            >
-                              Max
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleSetStudentAbsent(student.roll)}
-                              className="re-table-quick-btn absent"
-                              title="Set Absent (0)"
-                            >
-                              Abs
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                          )}
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-          {/* ── Sticky Bottom Floating Action Bar ── */}
-          {!effectiveReadOnly && (
-            <div className="re-sticky-action-bar">
-              <div className="re-sticky-info">
-                <div className="re-sticky-count-row">
-                  <span className="re-sticky-badge">
-                    📝 {enteredCount} / {totalStudentsCount}
-                  </span>
-                  <span className="re-sticky-progress-text">
-                    {progressPercent}% Done
+            {/* ── Sticky Bottom Floating Action Bar ── */}
+            {!effectiveReadOnly && (
+              <div className="re-sticky-action-bar">
+                <div className="re-sticky-info">
+                  <div className="re-sticky-count-row">
+                    <span className="re-sticky-badge">
+                      📝 {enteredCount} / {totalStudentsCount}
+                    </span>
+                    <span className="re-sticky-progress-text">
+                      {progressPercent}% Done
+                    </span>
+                  </div>
+                  <span className="re-sticky-sub">
+                    {selectedClass} • {selectedSubject}
                   </span>
                 </div>
-                <span className="re-sticky-sub">
-                  {selectedClass} • {selectedSubject}
-                </span>
+                <div className="re-sticky-buttons">
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    disabled={isSaving}
+                    className="re-btn-secondary"
+                    title="Clear all entered marks"
+                  >
+                    {t('common.reset')}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving || enteredCount === 0 || !selectedExamId}
+                    className="re-btn-primary"
+                  >
+                    {isSaving ? '⏳ Saving...' : `✓ Save (${enteredCount})`}
+                  </button>
+                </div>
               </div>
-              <div className="re-sticky-buttons">
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  disabled={isSaving}
-                  className="re-btn-secondary"
-                  title="Clear all entered marks"
-                >
-                  {t('common.reset')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving || enteredCount === 0 || !selectedExamId}
-                  className="re-btn-primary"
-                >
-                  {isSaving ? '⏳ Saving...' : `✓ Save (${enteredCount})`}
-                </button>
-              </div>
-            </div>
-          )}
-        </form>
+            )}
+          </form>
+        )}
       </div>
     </div>
   );

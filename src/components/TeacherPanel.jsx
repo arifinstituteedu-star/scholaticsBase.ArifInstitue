@@ -10,7 +10,7 @@ import { getTeacherPanelData, saveTeacherPanelData, subscribeToTeacherPanelData,
 import { loadGroupSubjectsFromFirestore, saveGroupSubjectsToFirestore } from '../firebase/groupSubjects.js';
 import { getBranchKeyByClass, extractClassNumber, getResolvedBranches, getActiveBranchKeys, filterClassesByBranch, SCHOOL_BRANCHES, sortClasses } from '../utils/schoolResolver.js';
 import { useViewMode } from '../context/ViewModeContext.jsx';
-import { notifySchoolDataChanged } from '../utils/schoolData.js';
+import { notifySchoolDataChanged, deleteStudentGlobally, deleteTeacherGlobally } from '../utils/schoolData.js';
 import FeeManagementSystem from './FeeManagementSystem.jsx';
 import { useAlert } from '../hooks/useAlert.js';
 import NotificationBell from './NotificationBell.jsx';
@@ -3474,10 +3474,26 @@ export default function TeacherPanel() {
     }));
   };
 
-  const handleDeleteTeachers = (emails) => {
+  const handleDeleteTeachers = async (emails) => {
     if (isReadOnly) return;
-    const emailSet = new Set(emails);
-    setTeachers(prev => prev.filter(t => !emailSet.has(t.email)));
+    const emailList = Array.isArray(emails) ? emails : [emails];
+    const emailSet = new Set(emailList);
+    const nextTeachers = teachers.filter(t => !emailSet.has(t.email));
+
+    setTeachers(nextTeachers);
+    writeStoredData(TEACHERS_STORAGE_KEY, nextTeachers, activeSchoolId);
+    deleteTeacherGlobally(emailList, activeSchoolId);
+
+    try {
+      await saveTeacherPanelDataToFirestore({
+        classes,
+        teachers: nextTeachers,
+        teacherRoutines,
+        timeSlots,
+      }, activeSchoolId);
+    } catch (err) {
+      console.warn('Could not sync deleted teachers to Firestore:', err);
+    }
   };
 
   const handleAddStudent = async (classIdx, student, groupName) => {
@@ -3677,7 +3693,7 @@ export default function TeacherPanel() {
     }
   };
 
-  const handleDeleteStudents = (classIdx, ids) => {
+  const handleDeleteStudents = async (classIdx, ids) => {
     if (!canModifyClass(classIdx)) return;
     const idSet = new Set(ids);
     const targetClass = classes[classIdx];
@@ -3685,18 +3701,33 @@ export default function TeacherPanel() {
       .filter((s) => idSet.has(s.id))
       .map((s) => ({ ...s, class: targetClass?.className || s.class }));
 
-    setClasses(prev => prev.map((cls, i) => {
+    const nextClasses = classes.map((cls, i) => {
       if (i !== classIdx) return cls;
       const remaining = (cls.students || [])
         .filter(s => !idSet.has(s.id))
         .map((s, j) => ({ ...s, roll: String(j + 1).padStart(2, '0') }));
       return { ...cls, students: remaining };
-    }));
+    });
+
+    setClasses(nextClasses);
+    writeStoredData(CLASSES_STORAGE_KEY, nextClasses, activeSchoolId);
+    deleteStudentGlobally(Array.from(idSet), activeSchoolId);
 
     if (deletedStudentObjects.length > 0) {
       purgeResultsForStudents(deletedStudentObjects, activeSchoolId).catch((err) => {
         console.warn('Could not purge student results from Firestore:', err);
       });
+    }
+
+    try {
+      await saveTeacherPanelDataToFirestore({
+        classes: nextClasses,
+        teachers,
+        teacherRoutines,
+        timeSlots,
+      }, activeSchoolId);
+    } catch (err) {
+      console.warn('Could not sync deleted students to Firestore:', err);
     }
   };
 
@@ -3799,6 +3830,8 @@ export default function TeacherPanel() {
     writeStoredData(TEACHERS_STORAGE_KEY, nextTeachers, activeSchoolId);
 
     if (deletedStudentObjects.length > 0) {
+      const studentIds = deletedStudentObjects.map(s => s?.id || s?.userId).filter(Boolean);
+      deleteStudentGlobally(studentIds, activeSchoolId);
       purgeResultsForStudents(deletedStudentObjects, activeSchoolId).catch(() => { });
     }
 
@@ -3814,7 +3847,7 @@ export default function TeacherPanel() {
         teachers: nextTeachers,
         teacherRoutines,
         timeSlots
-      });
+      }, activeSchoolId);
     } catch (err) {
       console.error('Failed to save deleted classes to Firestore:', err);
     }

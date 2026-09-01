@@ -72,7 +72,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "ScholasticBase"
+      "shortcutName": "ScholasticBase",
+      "installerIcon": "public/appicon.ico",
+      "uninstallerIcon": "public/appicon.ico",
+      "installerHeaderIcon": "public/appicon.ico"
     }
   }
 }

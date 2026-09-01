@@ -98,9 +98,9 @@ export function getNotices(schoolId = 'SCHOLASTICBASE_DEFAULT') {
   if (typeof window === 'undefined') return DEFAULT_NOTICES;
   try {
     const globalRaw = window.localStorage.getItem(NOTICE_STORAGE_KEY);
-    if (globalRaw) {
+    if (globalRaw !== null) {
       const parsedGlobal = JSON.parse(globalRaw);
-      if (Array.isArray(parsedGlobal) && parsedGlobal.length > 0) return parsedGlobal;
+      if (Array.isArray(parsedGlobal)) return parsedGlobal;
     }
     return DEFAULT_NOTICES;
   } catch (e) {

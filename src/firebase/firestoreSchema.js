@@ -250,10 +250,33 @@ export const getTeacherPanelData = async (schoolId) => {
     } : null;
 };
 
+// Local Device Storage caching helpers for subscriptions
+export const saveStorageCache = (key, data) => {
+    if (typeof window === 'undefined' || !key || data === undefined) return;
+    try {
+        if (data === null) {
+            window.localStorage.removeItem(`scholastic_schema_cache_${key}`);
+        } else {
+            window.localStorage.setItem(`scholastic_schema_cache_${key}`, JSON.stringify(data));
+        }
+    } catch {}
+};
+
+export const loadStorageCache = (key) => {
+    if (typeof window === 'undefined' || !key) return null;
+    try {
+        const raw = window.localStorage.getItem(`scholastic_schema_cache_${key}`);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+};
+
 export const saveTeacherPanelData = (payload = {}, schoolId) => {
     const { classes, teachers, teacherRoutines, timeSlots, examSessions, storedResults } = payload || {};
+    const safeSchoolId = schoolId || 'PROGGA_DEFAULT';
     const dataToSave = {
-        schoolId: schoolId || 'PROGGA_DEFAULT',
+        schoolId: safeSchoolId,
         schemaVersion: 1,
     };
 
@@ -263,6 +286,11 @@ export const saveTeacherPanelData = (payload = {}, schoolId) => {
     if (timeSlots !== undefined) dataToSave.timeSlots = timeSlots;
     if (examSessions !== undefined) dataToSave.examSessions = examSessions;
     if (storedResults !== undefined) dataToSave.storedResults = storedResults;
+
+    // Synchronously update local synthetic cache so listeners never read stale deleted data
+    const cacheKey = `teacherPanel_${schoolId || 'default'}`;
+    const prevCached = loadStorageCache(cacheKey) || {};
+    saveStorageCache(cacheKey, { ...prevCached, ...dataToSave });
 
     return saveDocument(
         refs.teacherPanel(schoolId),
@@ -650,6 +678,20 @@ export const saveResultEntry = async (result, schoolId) => {
 
     saveStoredResultToLocal({ ...docData, key: resultId }, targetSchoolId);
 
+    // Synchronize local result synthetic cache
+    const resultsCacheKey = `results_${targetSchoolId || 'default'}`;
+    const cachedResults = loadStorageCache(resultsCacheKey) || [];
+    if (Array.isArray(cachedResults)) {
+        const itemIdx = cachedResults.findIndex(r => r?.id === resultId || r?.resultId === resultId || r?.key === resultId);
+        const itemObj = { id: resultId, resultId, key: resultId, ...docData };
+        if (itemIdx >= 0) {
+            cachedResults[itemIdx] = itemObj;
+        } else {
+            cachedResults.push(itemObj);
+        }
+        saveStorageCache(resultsCacheKey, cachedResults);
+    }
+
     try {
         return await saveDocument(refs.result(resultId, targetSchoolId), docData);
     } catch (err) {
@@ -664,10 +706,40 @@ export const saveResultEntry = async (result, schoolId) => {
 
 export const deleteResultEntry = (resultId, schoolId) => {
     removeStoredResultFromLocal(resultId, schoolId);
+    // Synchronize local result synthetic cache on delete
+    const resultsCacheKey = `results_${schoolId || 'default'}`;
+    const cachedResults = loadStorageCache(resultsCacheKey);
+    if (Array.isArray(cachedResults)) {
+        const filtered = cachedResults.filter(r => r?.id !== resultId && r?.resultId !== resultId && r?.key !== resultId);
+        saveStorageCache(resultsCacheKey, filtered);
+    }
     return deleteDocument(refs.result(resultId, schoolId));
 };
 
 export const getResultsForStudent = async (studentId, schoolId) => {
+    try {
+        const cacheKey = `results_${schoolId || 'DEFAULT'}`;
+        const cachedResults = loadStorageCache(cacheKey);
+        if (Array.isArray(cachedResults) && cachedResults.length > 0) {
+            const uId = String(studentId || '').trim().toLowerCase();
+            const matches = cachedResults.filter((r) => String(r.studentId || r.userId || r.id || '').trim().toLowerCase() === uId);
+            if (matches.length > 0) {
+                // Background refresh from server without blocking UI
+                (async () => {
+                    try {
+                        const resultsQuery = query(collection(db, getSchoolCollectionName(COLLECTIONS.results, schoolId)), where('studentId', '==', studentId));
+                        const snapshot = await getDocs(resultsQuery);
+                        const serverMarks = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+                        if (serverMarks.length > 0) {
+                            saveStorageCache(cacheKey, serverMarks);
+                        }
+                    } catch {}
+                })();
+                return matches;
+            }
+        }
+    } catch {}
+
     const resultsQuery = query(collection(db, getSchoolCollectionName(COLLECTIONS.results, schoolId)), where('studentId', '==', studentId));
     const snapshot = await getDocs(resultsQuery);
     return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
@@ -754,6 +826,20 @@ export const saveExamSession = async (examSession, schoolId) => {
         schemaVersion: 1,
     });
 
+    // Synchronize local exam synthetic cache
+    const examsCacheKey = `exams_${targetSchoolId || 'default'}`;
+    const cachedExams = loadStorageCache(examsCacheKey) || [];
+    if (Array.isArray(cachedExams)) {
+        const itemIdx = cachedExams.findIndex(e => e?.id === examId || e?.examId === examId || e?.key === examId);
+        const itemObj = { id: examId, examId, key: examId, ...docData };
+        if (itemIdx >= 0) {
+            cachedExams[itemIdx] = itemObj;
+        } else {
+            cachedExams.push(itemObj);
+        }
+        saveStorageCache(examsCacheKey, cachedExams);
+    }
+
     try {
         return await saveDocument(refs.exam(examId, targetSchoolId), docData);
     } catch (err) {
@@ -769,34 +855,22 @@ export const deleteExamSession = async (examId, schoolId) => {
     if (!examId) return;
     const clean = cleanId(examId, 'exam');
     const raw = String(examId).trim();
+    const targetSchoolId = schoolId || 'PROGGA_DEFAULT';
+
+    // Synchronize local exam synthetic cache on delete
+    const examsCacheKey = `exams_${targetSchoolId || 'default'}`;
+    const cachedExams = loadStorageCache(examsCacheKey);
+    if (Array.isArray(cachedExams)) {
+        const filtered = cachedExams.filter(e => e?.id !== examId && e?.examId !== examId && e?.key !== examId && e?.id !== clean && e?.examId !== clean && e?.key !== clean);
+        saveStorageCache(examsCacheKey, filtered);
+    }
+
     const promises = [];
     promises.push(deleteDocument(refs.exam(clean, schoolId)).catch(() => {}));
     if (raw && raw !== clean) {
         promises.push(deleteDocument(doc(db, COLLECTIONS.exams, raw)).catch(() => {}));
     }
     await Promise.all(promises);
-};
-
-// Local Device Storage caching helpers for subscriptions
-const saveStorageCache = (key, data) => {
-    if (typeof window === 'undefined' || !key || data === undefined) return;
-    try {
-        if (data === null) {
-            window.localStorage.removeItem(`scholastic_schema_cache_${key}`);
-        } else {
-            window.localStorage.setItem(`scholastic_schema_cache_${key}`, JSON.stringify(data));
-        }
-    } catch {}
-};
-
-const loadStorageCache = (key) => {
-    if (typeof window === 'undefined' || !key) return null;
-    try {
-        const raw = window.localStorage.getItem(`scholastic_schema_cache_${key}`);
-        return raw ? JSON.parse(raw) : null;
-    } catch {
-        return null;
-    }
 };
 
 const createSyntheticDocSnap = (data) => ({

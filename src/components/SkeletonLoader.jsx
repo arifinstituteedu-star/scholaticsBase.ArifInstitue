@@ -278,6 +278,111 @@ export function ImageWithSkeleton({
   );
 }
 
+/**
+ * Exam Directory Skeleton — Displays shimmering KPI ribbon + session cards
+ */
+export function ExamDirectorySkeleton() {
+  return (
+    <SkeletonWrapper>
+      <div style={{ padding: '4px 0', width: '100%' }}>
+        {/* KPI Grid Skeleton */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{ background: '#ffffff', padding: '18px 20px', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <BaseSkeleton circle width="48px" height="48px" />
+              <div style={{ flex: 1 }}>
+                <BaseSkeleton width="50%" height="13px" style={{ marginBottom: 6 }} />
+                <BaseSkeleton width="70%" height="24px" style={{ marginBottom: 6 }} />
+                <BaseSkeleton width="40%" height="11px" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Action Header Skeleton */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ minWidth: '240px', flex: 1 }}>
+            <BaseSkeleton width="60%" height="22px" style={{ marginBottom: 6 }} />
+            <BaseSkeleton width="45%" height="14px" />
+          </div>
+          <BaseSkeleton width="180px" height="42px" borderRadius="10px" />
+        </div>
+
+        {/* Branch Banner & Cards Skeleton */}
+        <div style={{ background: '#ffffff', borderRadius: '18px', border: '1.5px solid #e2e8f0', padding: '20px', marginBottom: '24px' }}>
+          <BaseSkeleton width="100%" height="60px" borderRadius="14px" style={{ marginBottom: '20px' }} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+            {Array.from({ length: 3 }).map((_, j) => (
+              <div key={j} style={{ border: '1px solid #e2e8f0', borderRadius: '14px', padding: '18px', background: '#f8fafc' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <BaseSkeleton width="60%" height="20px" />
+                  <BaseSkeleton width="50px" height="20px" borderRadius="12px" />
+                </div>
+                <BaseSkeleton width="90%" height="14px" count={2} style={{ marginBottom: 8 }} />
+                <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                  <BaseSkeleton width="50%" height="32px" borderRadius="8px" />
+                  <BaseSkeleton width="50%" height="32px" borderRadius="8px" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </SkeletonWrapper>
+  );
+}
+
+/**
+ * Tabulation Sheet Skeleton — Displays shimmering report header + student rows
+ */
+export function TabulationSkeleton() {
+  return (
+    <SkeletonWrapper>
+      <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '28px', width: '100%', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+        {/* Header summary */}
+        <div style={{ textAlign: 'center', marginBottom: '28px', paddingBottom: '20px', borderBottom: '2px dashed #e2e8f0' }}>
+          <BaseSkeleton width="40%" height="28px" style={{ margin: '0 auto 10px auto' }} />
+          <BaseSkeleton width="25%" height="18px" style={{ margin: '0 auto 8px auto' }} />
+          <BaseSkeleton width="30%" height="14px" style={{ margin: '0 auto' }} />
+        </div>
+
+        {/* Filter bar skeleton */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <BaseSkeleton width="180px" height="38px" borderRadius="10px" />
+          <BaseSkeleton width="140px" height="38px" borderRadius="10px" />
+          <BaseSkeleton width="140px" height="38px" borderRadius="10px" />
+          <div style={{ flex: 1 }} />
+          <BaseSkeleton width="130px" height="38px" borderRadius="10px" />
+        </div>
+
+        {/* Table Rows skeleton */}
+        <div style={{ display: 'flex', gap: '12px', padding: '14px 16px', background: '#f8fafc', borderRadius: '10px', marginBottom: '14px' }}>
+          <BaseSkeleton width="50px" height="18px" />
+          <BaseSkeleton width="80px" height="18px" />
+          <BaseSkeleton width="200px" height="18px" />
+          <BaseSkeleton style={{ flex: 1 }} height="18px" />
+          <BaseSkeleton width="100px" height="18px" />
+          <BaseSkeleton width="80px" height="18px" />
+        </div>
+
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} style={{ display: 'flex', gap: '12px', padding: '14px 16px', borderBottom: '1px solid #f1f5f9', alignItems: 'center' }}>
+            <BaseSkeleton width="50px" height="16px" />
+            <BaseSkeleton width="80px" height="16px" />
+            <div style={{ width: '200px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <BaseSkeleton circle width="28px" height="28px" />
+              <BaseSkeleton width="140px" height="16px" />
+            </div>
+            <BaseSkeleton style={{ flex: 1 }} height="16px" />
+            <BaseSkeleton width="100px" height="16px" />
+            <BaseSkeleton width="80px" height="22px" borderRadius="12px" />
+          </div>
+        ))}
+      </div>
+    </SkeletonWrapper>
+  );
+}
+
 export default {
   preloadImages,
   BaseSkeleton,
@@ -286,4 +391,6 @@ export default {
   TableSkeleton,
   PortalSkeleton,
   ImageWithSkeleton,
+  ExamDirectorySkeleton,
+  TabulationSkeleton,
 };

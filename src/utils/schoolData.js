@@ -655,6 +655,130 @@ export function getAllTeachers(schoolId = getActiveSchoolId()) {
 }
 
 /**
+ * Completely remove a student from all storage sources and caches
+ */
+export function deleteStudentGlobally(studentIdOrList, schoolId = getActiveSchoolId()) {
+  if (typeof window === 'undefined' || !studentIdOrList) return;
+  const idsToDelete = (Array.isArray(studentIdOrList) ? studentIdOrList : [studentIdOrList])
+    .map(s => (typeof s === 'object' && s !== null ? (s.id || s.userId || s.studentId) : s))
+    .filter(Boolean)
+    .map(s => String(s).trim().toLowerCase());
+
+  if (idsToDelete.length === 0) return;
+  const idSet = new Set(idsToDelete);
+
+  // 1. Remove from schoolAppStudentProfiles
+  const profilesRaw = readStorage(LOCAL_STORAGE_KEYS.STUDENT_PROFILES, [], schoolId);
+  if (Array.isArray(profilesRaw)) {
+    const nextProfiles = profilesRaw.filter(p => !idSet.has(String(p?.id || p?.userId || p?.studentId || '').trim().toLowerCase()));
+    writeStorage(LOCAL_STORAGE_KEYS.STUDENT_PROFILES, nextProfiles);
+  } else if (typeof profilesRaw === 'object' && profilesRaw !== null) {
+    const nextProfiles = { ...profilesRaw };
+    Object.keys(nextProfiles).forEach(k => {
+      const p = nextProfiles[k];
+      if (idSet.has(String(p?.id || p?.userId || p?.studentId || k).trim().toLowerCase())) {
+        delete nextProfiles[k];
+      }
+    });
+    writeStorage(LOCAL_STORAGE_KEYS.STUDENT_PROFILES, nextProfiles);
+  }
+
+  // 2. Remove student user accounts from schoolAppLocalUsers
+  const localUsersRaw = readStorage(LOCAL_STORAGE_KEYS.USERS, {}, schoolId);
+  if (localUsersRaw && typeof localUsersRaw === 'object') {
+    const nextUsers = { ...localUsersRaw };
+    let userChanged = false;
+    Object.keys(nextUsers).forEach(k => {
+      const u = nextUsers[k];
+      const match = idSet.has(String(k).trim().toLowerCase()) ||
+                    idSet.has(String(u?.userId || u?.id || '').trim().toLowerCase());
+      if (match && String(u?.role || '').toLowerCase() === 'student') {
+        delete nextUsers[k];
+        userChanged = true;
+      }
+    });
+    if (userChanged) {
+      writeStorage(LOCAL_STORAGE_KEYS.USERS, nextUsers);
+      window.dispatchEvent(new CustomEvent('schoolUsersUpdate'));
+    }
+  }
+
+  // 3. Remove students nested in teacherPanelClasses
+  const classesRaw = readStorage(LOCAL_STORAGE_KEYS.TEACHER_PANEL_CLASSES, [], schoolId);
+  if (Array.isArray(classesRaw)) {
+    const nextClasses = classesRaw.map(cls => {
+      if (!Array.isArray(cls.students)) return cls;
+      const remaining = cls.students.filter(s => !idSet.has(String(s?.id || s?.userId || s?.studentId || '').trim().toLowerCase()));
+      return { ...cls, students: remaining };
+    });
+    writeStorage(LOCAL_STORAGE_KEYS.TEACHER_PANEL_CLASSES, nextClasses);
+  }
+
+  invalidateSchoolDataCache();
+  notifySchoolDataChanged();
+}
+
+/**
+ * Completely remove a teacher from all storage sources and caches
+ */
+export function deleteTeacherGlobally(teacherEmailOrIdList, schoolId = getActiveSchoolId()) {
+  if (typeof window === 'undefined' || !teacherEmailOrIdList) return;
+  const itemsToDelete = (Array.isArray(teacherEmailOrIdList) ? teacherEmailOrIdList : [teacherEmailOrIdList])
+    .map(t => (typeof t === 'object' && t !== null ? (t.email || t.userId || t.id) : t))
+    .filter(Boolean)
+    .map(s => String(s).trim().toLowerCase());
+
+  if (itemsToDelete.length === 0) return;
+  const deleteSet = new Set(itemsToDelete);
+
+  // 1. Remove from teacherPanelTeachers
+  const tpTeachers = readStorage(LOCAL_STORAGE_KEYS.TEACHER_PANEL_TEACHERS, [], schoolId);
+  if (Array.isArray(tpTeachers)) {
+    const nextTeachers = tpTeachers.filter(t => !deleteSet.has(String(t?.email || t?.id || t?.userId || '').trim().toLowerCase()));
+    writeStorage(LOCAL_STORAGE_KEYS.TEACHER_PANEL_TEACHERS, nextTeachers);
+  }
+
+  // 2. Remove from schoolAppTeachers
+  const appTeachers = readStorage(LOCAL_STORAGE_KEYS.TEACHERS, [], schoolId);
+  if (Array.isArray(appTeachers)) {
+    const nextTeachers = appTeachers.filter(t => !deleteSet.has(String(t?.email || t?.id || t?.userId || '').trim().toLowerCase()));
+    writeStorage(LOCAL_STORAGE_KEYS.TEACHERS, nextTeachers);
+  } else if (typeof appTeachers === 'object' && appTeachers !== null) {
+    const nextTeachers = { ...appTeachers };
+    Object.keys(nextTeachers).forEach(k => {
+      const t = nextTeachers[k];
+      if (deleteSet.has(String(t?.email || t?.id || t?.userId || k).trim().toLowerCase())) {
+        delete nextTeachers[k];
+      }
+    });
+    writeStorage(LOCAL_STORAGE_KEYS.TEACHERS, nextTeachers);
+  }
+
+  // 3. Remove teacher user accounts from schoolAppLocalUsers
+  const localUsersRaw = readStorage(LOCAL_STORAGE_KEYS.USERS, {}, schoolId);
+  if (localUsersRaw && typeof localUsersRaw === 'object') {
+    const nextUsers = { ...localUsersRaw };
+    let userChanged = false;
+    Object.keys(nextUsers).forEach(k => {
+      const u = nextUsers[k];
+      const match = deleteSet.has(String(k).trim().toLowerCase()) ||
+                    deleteSet.has(String(u?.email || u?.userId || u?.id || '').trim().toLowerCase());
+      if (match && String(u?.role || '').toLowerCase() === 'teacher') {
+        delete nextUsers[k];
+        userChanged = true;
+      }
+    });
+    if (userChanged) {
+      writeStorage(LOCAL_STORAGE_KEYS.USERS, nextUsers);
+      window.dispatchEvent(new CustomEvent('schoolUsersUpdate'));
+    }
+  }
+
+  invalidateSchoolDataCache();
+  notifySchoolDataChanged();
+}
+
+/**
  * Get aggregate statistics directly from localStorage.
  */
 export function getAggregateCounts(schoolId = getActiveSchoolId()) {

@@ -9,6 +9,7 @@ import useTranslation from '../hooks/useTranslation.js';
 import useConfirm from '../hooks/useConfirm.js';
 import useAlert from '../hooks/useAlert.js';
 import { convertToWebP } from '../utils/imageOptimizer.js';
+import { ExamDirectorySkeleton, TabulationSkeleton } from './SkeletonLoader.jsx';
 import PrintContainer from './PrintContainer.jsx';
 import './ExamResultView.css';
 
@@ -110,26 +111,7 @@ const normalizeSubjects = (subjects) => Array.isArray(subjects)
   ? [...new Set(subjects.map((subject) => String(subject || '').trim()).filter(Boolean))]
   : [];
 
-const getSubjectResults = (student = {}, className = '', configuredSubjects = DEFAULT_SUBJECTS) => {
-  const seed = `${className}-${student?.roll || '00'}-${student?.name || 'student'}`.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const subjects = normalizeSubjects(configuredSubjects);
-  const subjectList = subjects.length > 0 ? subjects : DEFAULT_SUBJECTS;
-
-  return subjectList.map((subjectName, index) => {
-    const base = 56 + ((index * 4) % 12);
-    const marks = Math.min(100, base + (seed % 20) + (subjectName.length % 8));
-    const gradeInfo = getBangladeshGradeInfo(marks);
-
-    return {
-      subject: subjectName,
-      marks,
-      status: gradeInfo.status,
-      grade: gradeInfo.grade,
-      gradePoint: gradeInfo.gradePoint,
-      remarks: gradeInfo.remarks,
-    };
-  });
-};
+const getSubjectResults = () => [];
 
 /* ═════════════════════════════════════════════════════════════
    Main Component
@@ -191,7 +173,51 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
   const [firestoreResults, setFirestoreResults] = useState(() => getStoredResultsFromLocal(activeSchoolId));
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedResultKeys, setSelectedResultKeys] = useState([]);
-  const [deletedResultKeys, setDeletedResultKeys] = useState([]);
+  const [deletedResultKeys, setDeletedResultKeys] = useState(() => {
+    if (typeof window === 'undefined' || !window.localStorage) return [];
+    try {
+      const key = activeSchoolId ? `progga_deleted_results_keys_${activeSchoolId}` : 'progga_deleted_results_keys';
+      const raw = window.localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const deletedResultKeysRef = useRef(new Set(deletedResultKeys));
+  useEffect(() => {
+    deletedResultKeysRef.current = new Set(deletedResultKeys);
+  }, [deletedResultKeys]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    try {
+      const key = activeSchoolId ? `progga_deleted_results_keys_${activeSchoolId}` : 'progga_deleted_results_keys';
+      const raw = window.localStorage.getItem(key);
+      const parsed = raw ? JSON.parse(raw) : [];
+      setDeletedResultKeys(parsed);
+      deletedResultKeysRef.current = new Set(parsed);
+    } catch {
+      setDeletedResultKeys([]);
+      deletedResultKeysRef.current = new Set();
+    }
+  }, [activeSchoolId]);
+
+  const recordDeletedResults = useCallback((keys) => {
+    const keyList = (Array.isArray(keys) ? keys : [keys]).filter(Boolean);
+    if (keyList.length === 0) return;
+    setDeletedResultKeys((prev) => {
+      const next = [...new Set([...prev, ...keyList])];
+      deletedResultKeysRef.current = new Set(next);
+      try {
+        const storageKey = activeSchoolId ? `progga_deleted_results_keys_${activeSchoolId}` : 'progga_deleted_results_keys';
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(storageKey, JSON.stringify(next));
+        }
+      } catch {}
+      return next;
+    });
+  }, [activeSchoolId]);
+
   const [screenScale, setScreenScale] = useState(1);
   const [isPrintingPdf, setIsPrintingPdf] = useState(false);
 
@@ -217,6 +243,20 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
 
   // Ref for the tabulation sheet DOM node (used for targeted print)
   const tabulationRef = useRef(null);
+
+  // Loading & sync state
+  const [isInitialLoading, setIsInitialLoading] = useState(() => {
+    const cachedResults = getStoredResultsFromLocal(activeSchoolId);
+    const cachedExams = getStoredExamSessions(activeSchoolId);
+    return cachedResults.length === 0 && cachedExams.length === 0;
+  });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [activeSchoolId]);
 
   // Exam States
   const [examSessions, setExamSessions] = useState(() => getStoredExamSessions(activeSchoolId));
@@ -380,16 +420,17 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
         // Add local docs first
         localDocs.forEach((item) => {
           const key = item?.key || item?.id || item?.resultId;
-          if (key) map.set(key, item);
+          if (key && !deletedResultKeysRef.current.has(key)) map.set(key, item);
         });
         // Let live Firestore snapshot override local docs with authoritative server data
         firestoreDocs.forEach((item) => {
           const key = item?.key || item?.id || item?.resultId;
-          if (key) map.set(key, item);
+          if (key && !deletedResultKeysRef.current.has(key)) map.set(key, item);
         });
 
         const mergedResults = Array.from(map.values());
         setFirestoreResults(mergedResults);
+        setIsInitialLoading(false);
 
         // Sync local storage with latest merged snapshot
         try {
@@ -402,13 +443,20 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
         }
       },
       (err) => {
+        setIsInitialLoading(false);
         const code = String(err?.code || '').toLowerCase();
         const msg = String(err?.message || '').toLowerCase();
         if (code !== 'permission-denied' && !msg.includes('permission')) {
           console.warn('Could not subscribe to result entries:', err?.message || err);
         }
         const localDocs = getStoredResultsFromLocal(activeSchoolId);
-        if (localDocs.length > 0) setFirestoreResults(localDocs);
+        if (localDocs.length > 0) {
+          const filtered = localDocs.filter((r) => {
+            const k = r?.key || r?.id || r?.resultId;
+            return k && !deletedResultKeysRef.current.has(k);
+          });
+          setFirestoreResults(filtered);
+        }
       },
       activeSchoolId
     );
@@ -419,7 +467,12 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
         try {
           const updatedLocal = JSON.parse(e.newValue);
           if (Array.isArray(updatedLocal)) {
-            setFirestoreResults(updatedLocal);
+            const filtered = updatedLocal.filter((r) => {
+              const k = r?.key || r?.id || r?.resultId;
+              return k && !deletedResultKeysRef.current.has(k);
+            });
+            setFirestoreResults(filtered);
+            setIsInitialLoading(false);
           }
         } catch {
           // ignore
@@ -430,6 +483,7 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
 
     const unsubscribeTeacherPanel = subscribeToTeacherPanelData(
       (docSnap) => {
+        setIsInitialLoading(false);
         if (!docSnap || !docSnap.exists()) return;
         const remoteData = docSnap.data();
 
@@ -447,11 +501,11 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
             const map = new Map();
             (prev || []).forEach((r) => {
               const k = r?.key || r?.id || r?.resultId;
-              if (k) map.set(k, r);
+              if (k && !deletedResultKeysRef.current.has(k)) map.set(k, r);
             });
             remoteData.storedResults.forEach((r) => {
               const k = r?.key || r?.id || r?.resultId;
-              if (k) map.set(k, r);
+              if (k && !deletedResultKeysRef.current.has(k)) map.set(k, r);
             });
             const merged = Array.from(map.values());
             try {
@@ -464,7 +518,9 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
           });
         }
       },
-      () => { },
+      () => {
+        setIsInitialLoading(false);
+      },
       activeSchoolId
     );
 
@@ -478,6 +534,7 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
   useEffect(() => {
     const unsubscribe = subscribeToExams(
       (snapshot) => {
+        setIsInitialLoading(false);
         if (!snapshot || !snapshot.docs) return;
         const firestoreDocs = snapshot.docs.map((item) => {
           const data = item.data() || {};
@@ -520,6 +577,7 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
         saveStoredExamSessions(merged, activeSchoolId);
       },
       (err) => {
+        setIsInitialLoading(false);
         const code = String(err?.code || '').toLowerCase();
         const msg = String(err?.message || '').toLowerCase();
         if (code !== 'permission-denied' && !msg.includes('permission')) {
@@ -802,15 +860,24 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
     });
 
     // Optimistically update UI local states instantly
+    const allKeysToDelete = [...localKeys, ...firestoreKeys, ...generatedKeys];
+    recordDeletedResults(allKeysToDelete);
+
     if (localKeys.length > 0) {
       setEnteredResults(prev => prev.filter(result => !localKeys.includes(result.key)));
     }
     if (firestoreKeys.length > 0) {
       const firestoreSet = new Set(firestoreKeys);
-      setFirestoreResults(prev => prev.filter(r => !firestoreSet.has(r.key || r.id)));
-    }
-    if (generatedKeys.length > 0) {
-      setDeletedResultKeys(prev => [...new Set([...prev, ...generatedKeys])]);
+      setFirestoreResults(prev => {
+        const next = prev.filter(r => !firestoreSet.has(r.key || r.id));
+        try {
+          const key = activeSchoolId ? `progga_stored_results_${activeSchoolId}` : 'progga_stored_results';
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(key, JSON.stringify(next));
+          }
+        } catch {}
+        return next;
+      });
     }
     setSelectedResultKeys([]);
     setSelectionMode(false);
@@ -835,6 +902,8 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
     });
     if (!shouldDelete) return;
 
+    recordDeletedResults([resultKey]);
+
     // Optimistically update UI local states instantly
     setSelectedResultKeys(prev => prev.filter(item => item !== getSelectionId(resultKey, source)));
     if (editingResultKey === resultKey) {
@@ -843,12 +912,20 @@ export default function ExamResultView({ classes = [], defaultToEntry = false, r
     }
 
     if (source === 'generated') {
-      setDeletedResultKeys(prev => [...new Set([...prev, resultKey])]);
       return;
     }
 
     if (source === 'firestore') {
-      setFirestoreResults(prev => prev.filter(r => (r.key || r.id) !== resultKey));
+      setFirestoreResults(prev => {
+        const next = prev.filter(r => (r.key || r.id) !== resultKey);
+        try {
+          const key = activeSchoolId ? `progga_stored_results_${activeSchoolId}` : 'progga_stored_results';
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(key, JSON.stringify(next));
+          }
+        } catch {}
+        return next;
+      });
       deleteResultEntry(resultKey, activeSchoolId).catch(err => {
         console.warn('Could not delete result from Firestore:', err);
       });
@@ -1016,9 +1093,9 @@ const getStudentGroupName = (student) => {
     return (allResults || []).filter((r) => {
       if (!r) return false;
       const rClassClean = String(r?.class || '').trim().toLowerCase();
-      const rExamClean = String(r?.examId || r?.term || 'current').trim().toLowerCase();
-      const targetExamClean = String(examId || 'current').trim().toLowerCase();
-      if (rClassClean !== targetClassClean || rExamClean !== targetExamClean || !isResultInAllowedClass(r)) {
+      const rExamClean = String(r?.examId || r?.term || '').trim().toLowerCase();
+      const targetExamClean = String(examId || '').trim().toLowerCase();
+      if (!targetExamClean || !rExamClean || rClassClean !== targetClassClean || rExamClean !== targetExamClean || !isResultInAllowedClass(r)) {
         return false;
       }
       if (isSpecificGroup) {
@@ -1150,11 +1227,11 @@ const getStudentGroupName = (student) => {
     const activeResults = allResults.filter((r) => {
       if (!r) return false;
       const rClassClean = String(r?.class || '').trim().toLowerCase();
-      const rExamClean = String(r?.examId || r?.term || 'current').trim().toLowerCase();
-      const targetExamClean = String(targetExamId || 'current').trim().toLowerCase();
+      const rExamClean = String(r?.examId || r?.term || '').trim().toLowerCase();
+      const targetExamClean = String(targetExamId || '').trim().toLowerCase();
 
       const matchesClass = rClassClean === targetClassClean;
-      const matchesExam = rExamClean === targetExamClean;
+      const matchesExam = Boolean(targetExamClean) && rExamClean === targetExamClean;
       if (!matchesClass || !matchesExam || !isResultInAllowedClass(r)) return false;
 
       if (isSpecificGroup) {
@@ -2817,6 +2894,9 @@ const getStudentGroupName = (student) => {
      Render: Student List
      ───────────────────────────────────────────────────────────── */
   const renderStudentList = () => {
+    if (isInitialLoading && overviewRows.length === 0) {
+      return <TabulationSkeleton />;
+    }
     const totalColumnCount = (!readOnly && selectionMode ? 1 : 0) + 10 + visibleSubjectColumns.length;
     const activeExamTitle = selectedExamSession?.name || selectedExamSession?.title || selectedExamSession?.examName || 'Academic Result List & Tabulation Sheet';
     const mainSchoolName = schoolProfile?.schoolName || (typeof window !== 'undefined' ? window.localStorage.getItem('schoolName') : '') || 'ScholasticBase';
@@ -4169,6 +4249,9 @@ const getStudentGroupName = (student) => {
   };
 
   const renderExamDirectory = () => {
+    if (isInitialLoading && examsWithResults.length === 0) {
+      return <ExamDirectorySkeleton />;
+    }
     const totalExamsCount = examsWithResults.length;
     const allEnrolledStudentsWithResults = new Set();
     allResults.forEach((r) => {
@@ -5211,7 +5294,8 @@ function ConfigureExamModal({ classes = [], onClose, onSave }) {
         .replace(/^-+|-+$/g, '');
     };
 
-    const examId = `${sanitizeForId(name)}-${selectedBranch}-${sanitizeForId(targetClass)}${targetGroup ? `-${sanitizeForId(targetGroup)}` : ''}`;
+    const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+    const examId = `${sanitizeForId(name)}-${selectedBranch}-${sanitizeForId(targetClass)}${targetGroup ? `-${sanitizeForId(targetGroup)}` : ''}-${uniqueSuffix}`;
 
     onSave({
       examId,
@@ -5220,6 +5304,7 @@ function ConfigureExamModal({ classes = [], onClose, onSave }) {
       targetClass,
       targetGroup: targetGroup || 'General',
       subjectRules: activeRules,
+      createdAt: Date.now(),
     });
   };
 
