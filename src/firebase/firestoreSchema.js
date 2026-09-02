@@ -273,7 +273,7 @@ export const loadStorageCache = (key) => {
 };
 
 export const saveTeacherPanelData = (payload = {}, schoolId) => {
-    const { classes, teachers, teacherRoutines, timeSlots, examSessions, storedResults } = payload || {};
+    const { classes, teachers, teacherRoutines, timeSlots, tiffinConfig, examSessions, storedResults } = payload || {};
     const safeSchoolId = schoolId || 'PROGGA_DEFAULT';
     const dataToSave = {
         schoolId: safeSchoolId,
@@ -284,6 +284,7 @@ export const saveTeacherPanelData = (payload = {}, schoolId) => {
     if (teachers !== undefined) dataToSave.teachers = teachers;
     if (teacherRoutines !== undefined) dataToSave.teacherRoutines = teacherRoutines;
     if (timeSlots !== undefined) dataToSave.timeSlots = timeSlots;
+    if (tiffinConfig !== undefined) dataToSave.tiffinConfig = tiffinConfig;
     if (examSessions !== undefined) dataToSave.examSessions = examSessions;
     if (storedResults !== undefined) dataToSave.storedResults = storedResults;
 

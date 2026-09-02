@@ -11,6 +11,7 @@ export default function SafeImage({
   style = {},
   fallbackVariant = 'school', // 'school' | 'avatar' | 'generic'
   fallbackText = '',
+  fallbackSrc = '',
   width,
   height,
   objectFit = 'contain',
@@ -18,15 +19,17 @@ export default function SafeImage({
   onError,
   ...props
 }) {
-  const [status, setStatus] = useState(() => (!src || typeof src !== 'string' || !src.trim() ? 'error' : 'loading'));
+  const [currentSrc, setCurrentSrc] = useState(src);
+  const [status, setStatus] = useState(() => (!src || typeof src !== 'string' || !src.trim() ? (fallbackSrc ? 'loading' : 'error') : 'loading'));
 
   useEffect(() => {
-    if (!src || typeof src !== 'string' || !src.trim()) {
+    setCurrentSrc(src || fallbackSrc);
+    if (!src && !fallbackSrc) {
       setStatus('error');
     } else {
       setStatus('loading');
     }
-  }, [src]);
+  }, [src, fallbackSrc]);
 
   const handleImageLoad = (e) => {
     setStatus('loaded');
@@ -34,6 +37,10 @@ export default function SafeImage({
   };
 
   const handleImageError = (e) => {
+    if (fallbackSrc && currentSrc !== fallbackSrc) {
+      setCurrentSrc(fallbackSrc);
+      return;
+    }
     setStatus('error');
     if (onError) onError(e);
   };
@@ -174,7 +181,7 @@ export default function SafeImage({
       {/* 2. Hidden preload / Active Image */}
       {status !== 'error' && (
         <img
-          src={src}
+          src={currentSrc || src}
           alt={alt}
           onLoad={handleImageLoad}
           onError={handleImageError}

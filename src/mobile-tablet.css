@@ -2024,12 +2024,14 @@ button,
 /* Branch Filter Pills */
 .re-branch-pills-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 6px;
   margin-bottom: 18px;
   scrollbar-width: none;
+  width: 100%;
+  max-width: 100%;
 }
 
 .re-branch-pills-row::-webkit-scrollbar {
@@ -2040,7 +2042,7 @@ button,
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 18px;
+  padding: 8px 16px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 700;
@@ -2049,6 +2051,9 @@ button,
   color: #475569;
   cursor: pointer;
   white-space: nowrap;
+  max-width: 85vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
 }
@@ -2072,9 +2077,16 @@ button,
 /* Form Controls Grid */
 .re-controls-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 14px;
   margin-bottom: 18px;
+}
+
+@media (max-width: 600px) {
+  .re-controls-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
 }
 
 .re-form-group {
@@ -2818,10 +2830,24 @@ button,
     gap: 10px !important;
   }
 
+  @media (max-width: 500px) {
+    .re-controls-grid {
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
+  }
+
   .re-dashboard-strip {
     grid-template-columns: 1fr 1fr !important;
     gap: 8px !important;
     padding: 10px 12px !important;
+  }
+
+  @media (max-width: 500px) {
+    .re-dashboard-strip {
+      grid-template-columns: 1fr !important;
+      gap: 8px !important;
+    }
   }
 
   .re-sticky-action-bar {

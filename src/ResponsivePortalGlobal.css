@@ -81,13 +81,19 @@
   overflow-wrap: break-word !important;
 }
 
-/* On mobile: allow topbar greeting text to wrap */
+/* On mobile: enforce clean single-line truncation in topbar with ellipsis to prevent height-blowout */
 @media (max-width: 1023px) {
+  .tp-topbar-greeting {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
   .tp-topbar-greeting h2,
-  .tp-topbar-greeting p {
-    white-space: normal !important;
-    word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
+  .tp-topbar-greeting p,
+  .tp-topbar-subtitle {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    word-break: normal !important;
   }
 }
 
@@ -1516,6 +1522,10 @@
   text-align: left !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
   outline: none !important;
 }
 
@@ -1560,6 +1570,8 @@
   display: flex !important;
   flex-direction: column !important;
   min-width: 0 !important;
+  flex: 1 !important;
+  overflow: hidden !important;
 }
 
 .tp-kpi-num {
@@ -1570,6 +1582,7 @@
 }
 
 .tp-kpi-role {
+  display: block !important;
   font-size: 12.5px !important;
   font-weight: 700 !important;
   color: #ffffff !important;
@@ -1577,14 +1590,20 @@
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  max-width: 100px !important;
+  max-width: 100% !important;
+  width: 100% !important;
 }
 
 .tp-kpi-label {
+  display: block !important;
   font-size: 10.5px !important;
   color: #94a3b8 !important;
   font-weight: 500 !important;
-  white-space: nowrap !important;
+  white-space: normal !important;
+  line-height: 1.25 !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
 }
 
 .tp-modules-section-header {
@@ -1596,10 +1615,20 @@
   padding: 0 4px !important;
 }
 
+@media (max-width: 640px) {
+  .tp-modules-section-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+}
+
 .tp-modules-header-info {
   display: flex !important;
   flex-direction: column !important;
   gap: 2px !important;
+  min-width: 0 !important;
+  flex: 1 !important;
 }
 
 .tp-modules-title {
@@ -1608,6 +1637,8 @@
   font-weight: 800 !important;
   color: #0f172a !important;
   letter-spacing: -0.01em !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
 }
 
 .tp-modules-subtitle {
@@ -1615,6 +1646,9 @@
   font-size: 12.5px !important;
   color: #64748b !important;
   font-weight: 500 !important;
+  line-height: 1.35 !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
 }
 
 .tp-modules-count-tag {
@@ -1637,7 +1671,7 @@
   padding: 0 0 40px !important;
 }
 
-@media (max-width: 500px) {
+@media (max-width: 640px) {
   .tp-cards-grid {
     grid-template-columns: 1fr !important;
   }
@@ -1790,10 +1824,21 @@
   box-shadow: 0 4px 16px rgba(37, 99, 235, 0.04) !important;
 }
 
+@media (max-width: 640px) {
+  .tp-branch-dir-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    padding: 14px 16px !important;
+  }
+}
+
 .tp-branch-dir-info {
   display: flex !important;
   flex-direction: column !important;
   gap: 4px !important;
+  min-width: 0 !important;
+  flex: 1 !important;
 }
 
 .tp-dir-badge {
@@ -1812,17 +1857,22 @@
 
 .tp-dir-title {
   margin: 2px 0 0 !important;
-  font-size: clamp(18px, 2.8vw, 24px) !important;
+  font-size: clamp(16px, 4vw, 22px) !important;
   font-weight: 800 !important;
   color: #0f172a !important;
   letter-spacing: -0.02em !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
 }
 
 .tp-dir-subtitle {
   margin: 0 !important;
-  font-size: 13px !important;
+  font-size: 12.5px !important;
   color: #64748b !important;
   font-weight: 500 !important;
+  line-height: 1.35 !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
 }
 
 .tp-dir-total-pill {
@@ -1846,9 +1896,10 @@
   width: 100% !important;
 }
 
-@media (max-width: 500px) {
+@media (max-width: 640px) {
   .tp-branch-grid {
     grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
 }
 
@@ -1867,6 +1918,14 @@
   text-align: left !important;
   position: relative !important;
   outline: none !important;
+}
+
+@media (max-width: 640px) {
+  .tp-branch-card {
+    padding: 14px 16px !important;
+    gap: 12px !important;
+    border-radius: 16px !important;
+  }
 }
 
 .tp-branch-card:hover {
@@ -1892,6 +1951,15 @@
   transition: transform 0.2s ease !important;
 }
 
+@media (max-width: 640px) {
+  .tp-branch-icon-box {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 20px !important;
+    border-radius: 12px !important;
+  }
+}
+
 .tp-branch-card:hover .tp-branch-icon-box {
   transform: scale(1.08) rotate(-3deg) !important;
 }
@@ -1905,15 +1973,16 @@
 }
 
 .tp-branch-name {
-  font-size: 15.5px !important;
+  font-size: clamp(13.5px, 3.8vw, 15px) !important;
   font-weight: 800 !important;
   color: #0f172a !important;
   margin: 0 !important;
-  line-height: 1.3 !important;
+  line-height: 1.35 !important;
   white-space: normal !important;
   overflow: visible !important;
   text-overflow: clip !important;
-  word-break: break-word !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
 }
 
 .tp-branch-meta-row {
@@ -1966,6 +2035,116 @@
   border-color: #bfdbfe !important;
   transform: translateX(3px) !important;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   UNIVERSAL MOBILE TEXT-WRAP & OVERFLOW SAFEGUARDS (≤ 768px)
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  html, body, #root, .tp-layout, .tp-main, .tp-content-area, .ov-container, .re-page-container {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Any card or shell container must not exceed screen width */
+  .tp-main,
+  .tp-content-area,
+  .tp-hero,
+  .tp-hero-card,
+  .tp-detail-card,
+  .tp-menu-card,
+  .tp-branch-card,
+  .re-card,
+  .ov-hero-card,
+  .ov-stat-card,
+  .ov-section-card {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Section headers, toolbars, and crumb rows wrap naturally without squeezing */
+  .tp-section-header,
+  .tp-section-header-info,
+  .tp-header-left,
+  .tp-header-right,
+  .tp-roster-toolbar,
+  .tp-crumb-row {
+    flex-wrap: wrap !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .tp-section-title,
+  .tp-card-title,
+  .tp-modal-title,
+  .re-title,
+  .ov-hero-title,
+  .routine-display {
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+    max-width: 100% !important;
+  }
+
+  .tp-section-subtitle,
+  .tp-card-subtitle,
+  .re-subtitle,
+  .ov-hero-subtitle,
+  .tp-hero-quote,
+  .tp-hero-quote p {
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.4 !important;
+    max-width: 100% !important;
+  }
+
+  /* School and Institution Names across cards and headers */
+  .tp-school-name,
+  .login-school-name,
+  .dashboard-school-name,
+  .transcript-school-name,
+  .tp-branch-name,
+  .re-institution-chip {
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    text-wrap: balance !important;
+    max-width: 100% !important;
+  }
+
+  /* Badges, tags, and chips */
+  .tp-badge-row,
+  .re-badge-row,
+  .ov-hero-chips,
+  .tp-branch-meta-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    max-width: 100% !important;
+  }
+
+  /* Table responsive wrappers - finger swiping without pushing outer layout */
+  .tp-table-container,
+  .tp-table-wrapper,
+  .tp-roster-table-wrap,
+  .routine-table-container,
+  .transcript-table-container,
+  .fee-table-container,
+  .results-tabulation-sheet .tp-table-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Prevent inputs and selects from overflowing containers */
+  input, select, textarea {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
 
 
 

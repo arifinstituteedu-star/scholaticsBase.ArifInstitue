@@ -175,10 +175,51 @@
     }
 
     .tp-bell-wrap {
-        position: relative !important;
+        position: static !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
+    }
+
+    .tp-notif-backdrop {
+        display: block !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: rgba(15, 23, 42, 0.35) !important;
+        backdrop-filter: blur(2px) !important;
+        -webkit-backdrop-filter: blur(2px) !important;
+        z-index: 9998 !important;
+    }
+
+    .tp-notif-popover {
+        position: absolute !important;
+        top: calc(100% + 8px) !important;
+        left: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+        max-width: min(440px, calc(100vw - 20px)) !important;
+        margin: 0 auto !important;
+        max-height: calc(100dvh - 75px) !important;
+        border-radius: 16px !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 20px 48px rgba(15, 23, 42, 0.22), 0 4px 16px rgba(15, 23, 42, 0.1) !important;
+        z-index: 9999 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
+    .tp-notif-list {
+        max-height: calc(100dvh - 145px) !important;
+        flex: 1 1 auto !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior: contain !important;
     }
 
     .tp-bell-dot {

@@ -645,7 +645,8 @@
 }
 
 .transcript-school-name {
-  font-size: 26px;
+  font-size: 18px;
+  line-height: 1.2;
   font-weight: 800;
   color: #0f172a;
   margin: 0 0 4px 0;

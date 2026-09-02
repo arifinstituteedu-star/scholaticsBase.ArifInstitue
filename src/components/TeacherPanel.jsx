@@ -240,6 +240,12 @@ const TEACHERS_STORAGE_KEY = 'teacherPanelTeachers';
 const GROUP_SUBJECTS_STORAGE_KEY = 'teacherPanelGroupSubjects';
 const TEACHER_ROUTINES_STORAGE_KEY = 'teacherPanelTeacherRoutines';
 const ROUTINE_TIME_SLOTS_STORAGE_KEY = 'teacherPanelRoutineTimeSlots';
+const ROUTINE_TIFFIN_CONFIG_STORAGE_KEY = 'teacherPanelTiffinConfig';
+const DEFAULT_TIFFIN_CONFIG = {
+  enabled: true,
+  time: '১২:৫০-১:৩০',
+  afterPeriod: 5,
+};
 const getActiveSchoolId = () => {
   if (typeof window === 'undefined') return '';
   try {
@@ -2826,6 +2832,8 @@ function DetailContent({
   onSaveClassRoutine,
   timeSlots = [],
   onSaveTimeSlots,
+  tiffinConfig = DEFAULT_TIFFIN_CONFIG,
+  onSaveTiffinConfig,
 }) {
   const { user } = useAuth();
   const { schoolProfile } = useSchoolProfile();
@@ -3228,6 +3236,8 @@ function DetailContent({
           readOnly={isReadOnly}
           timeSlots={safeTimeSlots}
           onSaveTimeSlots={onSaveTimeSlots}
+          tiffinConfig={tiffinConfig}
+          onSaveTiffinConfig={onSaveTiffinConfig}
         />
       </SectionErrorBoundary>
     );
@@ -3294,6 +3304,10 @@ export default function TeacherPanel() {
     ])
   );
 
+  const [tiffinConfig, setTiffinConfig] = useState(() =>
+    readStoredData(ROUTINE_TIFFIN_CONFIG_STORAGE_KEY, DEFAULT_TIFFIN_CONFIG, activeSchoolId) || DEFAULT_TIFFIN_CONFIG
+  );
+
   const isRemoteUpdate = useRef(false);
   const skipSyncRef = useRef(false);
 
@@ -3331,6 +3345,11 @@ export default function TeacherPanel() {
         if (Array.isArray(remoteData?.timeSlots)) {
           setTimeSlots(remoteData.timeSlots);
           writeStoredData(ROUTINE_TIME_SLOTS_STORAGE_KEY, remoteData.timeSlots, activeSchoolId);
+        }
+
+        if (remoteData?.tiffinConfig && typeof remoteData.tiffinConfig === 'object') {
+          setTiffinConfig(remoteData.tiffinConfig);
+          writeStoredData(ROUTINE_TIFFIN_CONFIG_STORAGE_KEY, remoteData.tiffinConfig, activeSchoolId);
         }
       }
       setHasLoadedRemoteData(true);
@@ -3375,6 +3394,10 @@ export default function TeacherPanel() {
   }, [timeSlots, activeSchoolId]);
 
   useEffect(() => {
+    writeStoredData(ROUTINE_TIFFIN_CONFIG_STORAGE_KEY, tiffinConfig, activeSchoolId);
+  }, [tiffinConfig, activeSchoolId]);
+
+  useEffect(() => {
     if (!hasLoadedRemoteData) return;
     if (isRemoteUpdate.current) {
       isRemoteUpdate.current = false;
@@ -3387,10 +3410,10 @@ export default function TeacherPanel() {
     // Guard: never auto-save an empty state to Firestore — it would wipe real data.
     if (classes.length === 0 && teachers.length === 0) return;
 
-    saveTeacherPanelDataToFirestore({ classes, teachers, teacherRoutines, timeSlots }, activeSchoolId).catch((err) => {
+    saveTeacherPanelDataToFirestore({ classes, teachers, teacherRoutines, timeSlots, tiffinConfig }, activeSchoolId).catch((err) => {
       console.warn('Could not save teacher panel data to Firestore. Local cache was updated.', err);
     });
-  }, [classes, teachers, teacherRoutines, timeSlots, hasLoadedRemoteData, activeSchoolId]);
+  }, [classes, teachers, teacherRoutines, timeSlots, tiffinConfig, hasLoadedRemoteData, activeSchoolId]);
 
   useEffect(() => {
     let active = true;
@@ -4048,12 +4071,14 @@ export default function TeacherPanel() {
   const rawPhoneCandidate = selectedProfileDetails?.phone || user?.phone || user?.phoneNumber || user?.adminPhone || activeUser?.phone || resolvedAdminDetails?.phone || '';
   const displayPhone = (typeof rawPhoneCandidate === 'string' && rawPhoneCandidate.trim()) ? rawPhoneCandidate.trim() : (profileRoleRaw === 'teacher' ? 'Not provided' : null);
 
+  const isSuperAdmin = !!user?.isSuperAdmin;
+
   // Subject / Class / Organization display
   const assignedSubjectOrClass = profileRoleRaw === 'teacher'
     ? (selectedProfileDetails?.subject || 'General')
     : profileRoleRaw === 'student'
       ? (selectedProfileDetails?.className ? `Class ${selectedProfileDetails.className}` : 'Not assigned')
-      : (schoolProfile?.schoolName || 'PROGGA School');
+      : (isSuperAdmin ? 'Super Admin' : (profileRoleRaw === 'admin' ? 'Administrator' : (selectedProfile?.role ? (selectedProfile.role.charAt(0).toUpperCase() + selectedProfile.role.slice(1)) : 'Admin')));
 
   const avatarPic = selectedProfileDetails?.profilePic || user?.profilePic || user?.photo || user?.photoURL || (profileRoleRaw === 'admin' ? schoolProfile?.logo : null);
 
@@ -4067,7 +4092,6 @@ export default function TeacherPanel() {
 
   const currentTeacherEmail = currentTeacherProfile?.email || '';
   const isTeacherRole = selectedProfile.role === 'teacher';
-  const isSuperAdmin = !!user?.isSuperAdmin;
   const isClassTeacherAccess = !isSuperAdmin && isTeacherRole && activeUser?.accessMode === 'classTeacher';
   const isReadOnly = !isSuperAdmin && isTeacherRole && activeUser?.accessMode === 'readOnly';
 
@@ -4411,6 +4435,8 @@ export default function TeacherPanel() {
               onSaveClassRoutine={handleSaveClassRoutine}
               timeSlots={timeSlots}
               onSaveTimeSlots={setTimeSlots}
+              tiffinConfig={tiffinConfig}
+              onSaveTiffinConfig={setTiffinConfig}
             />
           </>
         )}

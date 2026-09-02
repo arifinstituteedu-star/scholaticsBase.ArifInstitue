@@ -62,13 +62,16 @@ const ROUTINE_STYLES = `
 
 @media (max-width: 768px) {
   .routine-main-container { padding: 10px !important; min-height: 100vh !important; min-height: 100dvh !important; display: flex !important; flex-direction: column !important; }
-  .routine-header { flex-direction: column; align-items: flex-start !important; gap: 14px; padding: 16px !important; }
+  .routine-header { flex-direction: column; align-items: stretch !important; gap: 14px; padding: 16px !important; }
   .routine-header h2 { font-size: 21px !important; }
-  .routine-tab-container { width: 100%; justify-content: space-between; }
-  .routine-tab { flex: 1; text-align: center; padding: 9px 10px !important; font-size: 13px !important; }
+  .routine-header-actions { flex-direction: column !important; align-items: stretch !important; width: 100% !important; gap: 10px !important; }
+  .routine-header-actions .routine-toolbtn { width: 100% !important; text-align: center !important; justify-content: center !important; }
+  .routine-tab-container { width: 100% !important; justify-content: space-between; }
+  .routine-tab { flex: 1; text-align: center; padding: 9px 8px !important; font-size: 12.5px !important; white-space: nowrap; }
   .routine-fade { width: 100%; }
   .routine-selector-row { flex-direction: column; align-items: flex-start !important; gap: 8px; }
   .routine-selector-row select { width: 100%; }
+  .routine-table-container { width: 100% !important; max-width: 100% !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
   .routine-table-container table { font-size: 11.5px !important; min-width: 640px !important; }
   .routine-table-container th, .routine-table-container td { padding: 5px 3px !important; }
   .routine-table-container input { font-size: 11.5px !important; }
@@ -452,6 +455,12 @@ const resolveTimeSlots = (timeSlots) =>
 
 const TIFFIN_AFTER_INDEX = 5;
 
+const DEFAULT_TIFFIN_CONFIG = {
+  enabled: true,
+  time: '১২:৫০-১:৩০',
+  afterPeriod: 5,
+};
+
 // Helper to check if any routine cell has non-empty data
 const hasAnyRoutineData = (classesList, routinesMap) => {
   if (Array.isArray(classesList)) {
@@ -523,6 +532,7 @@ export const RoutineTable = ({
   getSlot,
   renderCell,
   timeSlots = DEFAULT_TIME_SLOTS,
+  tiffinConfig = DEFAULT_TIFFIN_CONFIG,
   tiffinLabel = 'টিফিন',
   timeDayLabel = 'সময় / বার',
   noDataMsg,
@@ -548,19 +558,59 @@ export const RoutineTable = ({
     );
   }
 
-  const tiffinPos = timeSlots.length > TIFFIN_AFTER_INDEX ? TIFFIN_AFTER_INDEX : -1;
-  const tiffinChars = [...tiffinLabel];
+  const tiffinEnabled = tiffinConfig?.enabled !== false;
+  const tiffinAfter = Number(tiffinConfig?.afterPeriod ?? TIFFIN_AFTER_INDEX);
+  const tiffinTime = tiffinConfig?.time ? String(tiffinConfig.time).trim() : '';
+  const tiffinPos = tiffinEnabled && tiffinAfter >= 1 && tiffinAfter <= timeSlots.length
+    ? tiffinAfter
+    : (tiffinEnabled && timeSlots.length >= TIFFIN_AFTER_INDEX ? TIFFIN_AFTER_INDEX : -1);
+  const tiffinChars = [...(tiffinLabel || 'টিফিন')];
 
   const tiffinCell = (keyPrefix) => (
     <td
       key={`${keyPrefix}-tiffin`}
       className="routine-tiffin-col"
-      style={{ borderRight: `1px solid ${TOKENS.line}`, width: 34, padding: 4, verticalAlign: 'middle', color: TOKENS.marigoldDeep, fontWeight: 700, fontSize: 13 }}
+      style={{
+        borderRight: `1px solid ${TOKENS.line}`,
+        width: tiffinTime ? 60 : 36,
+        padding: 4,
+        verticalAlign: 'middle',
+        color: TOKENS.marigoldDeep,
+        fontWeight: 700,
+        fontSize: 13
+      }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1.15 }}>
         {tiffinChars.map((ch, i) => <span key={i}>{ch}</span>)}
       </div>
     </td>
+  );
+
+  const tiffinHeader = (
+    <th
+      key="header-tiffin"
+      className="routine-tiffin-col"
+      style={{
+        borderRight: `1px solid ${TOKENS.line}`,
+        borderBottom: `2px solid ${TOKENS.marigold}`,
+        width: tiffinTime ? 60 : 36,
+        fontWeight: 700,
+        fontSize: 12,
+        padding: '6px 3px',
+        verticalAlign: 'middle',
+        color: TOKENS.marigoldDeep,
+        background: '#FEF3C7'
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+        <span style={{ fontSize: 12.5, fontWeight: 800, color: '#92400E' }}>{tiffinLabel || 'টিফিন'}</span>
+        {tiffinTime ? (
+          <span style={{ fontSize: 9.5, fontWeight: 700, background: 'rgba(255,255,255,0.85)', color: '#B45309', padding: '1px 4px', borderRadius: 4, whiteSpace: 'nowrap', border: '1px solid rgba(217,119,6,0.25)' }}>
+            {tiffinTime}
+          </span>
+        ) : null}
+      </div>
+    </th>
   );
 
   return (
@@ -571,19 +621,13 @@ export const RoutineTable = ({
             <th style={{ borderRight: `1px solid ${TOKENS.indigoDeep}`, borderBottom: `2px solid ${TOKENS.marigold}`, padding: '12px 8px', fontWeight: 700, width: 104, color: '#fff', letterSpacing: 0.2 }}>{timeDayLabel}</th>
             {timeSlots.map((time, idx) => (
               <React.Fragment key={`header-${idx}`}>
-                {idx === tiffinPos && (
-                  <th
-                    className="routine-tiffin-col"
-                    style={{ borderRight: `1px solid ${TOKENS.line}`, borderBottom: `2px solid ${TOKENS.marigold}`, width: 34, fontWeight: 700, fontSize: 13, padding: 4, verticalAlign: 'middle', color: TOKENS.marigoldDeep }}
-                  >
-                    {tiffinLabel}
-                  </th>
-                )}
+                {idx === tiffinPos && tiffinHeader}
                 <th style={{ borderRight: `1px solid ${TOKENS.indigoDeep}`, borderBottom: `2px solid ${TOKENS.marigold}`, padding: '12px 6px', fontWeight: 600, color: '#fff', fontSize: 13 }}>
                   {String(time || '')}
                 </th>
               </React.Fragment>
             ))}
+            {tiffinPos === timeSlots.length && tiffinHeader}
           </tr>
         </thead>
         <tbody>
@@ -624,6 +668,7 @@ export const RoutineTable = ({
                   </React.Fragment>
                 );
               })}
+              {tiffinPos === timeSlots.length && tiffinCell(`${day}-end`)}
             </tr>
           ))}
         </tbody>
@@ -635,7 +680,7 @@ export const RoutineTable = ({
 // ==========================================
 // READ-ONLY TEACHER ROUTINE VIEW
 // ==========================================
-export const TeacherRoutineReadOnly = ({ routine = {}, teacherName, timeSlots = DEFAULT_TIME_SLOTS }) => {
+export const TeacherRoutineReadOnly = ({ routine = {}, teacherName, timeSlots = DEFAULT_TIME_SLOTS, tiffinConfig = DEFAULT_TIFFIN_CONFIG }) => {
   const safeTimeSlots = resolveTimeSlots(timeSlots);
   const { t } = useTranslation();
   const displayDays = t('routine.days');
@@ -669,6 +714,7 @@ export const TeacherRoutineReadOnly = ({ routine = {}, teacherName, timeSlots = 
         days={STATIC_DAYS_BN}
         displayDays={displayDays}
         tiffinLabel={t('routine.tiffin')}
+        tiffinConfig={tiffinConfig}
         timeDayLabel={t('routine.timeDay')}
         noDataMsg={t('routine.noData')}
         renderErrMsg={t('routine.renderErr')}
@@ -697,7 +743,7 @@ export const TeacherRoutineReadOnly = ({ routine = {}, teacherName, timeSlots = 
 // ==========================================
 // TEACHER ROUTINE COMPONENT (direct text inputs for all cells)
 // ==========================================
-export const TeacherRoutine = ({ teacherName, routine = {}, onUpdate, readOnly = false, timeSlots = DEFAULT_TIME_SLOTS }) => {
+export const TeacherRoutine = ({ teacherName, routine = {}, onUpdate, readOnly = false, timeSlots = DEFAULT_TIME_SLOTS, tiffinConfig = DEFAULT_TIFFIN_CONFIG }) => {
   const safeTimeSlots = resolveTimeSlots(timeSlots);
   const { t } = useTranslation();
   const displayDays = t('routine.days');
@@ -755,6 +801,7 @@ export const TeacherRoutine = ({ teacherName, routine = {}, onUpdate, readOnly =
         days={STATIC_DAYS_BN}
         displayDays={displayDays}
         tiffinLabel={t('routine.tiffin')}
+        tiffinConfig={tiffinConfig}
         timeDayLabel={t('routine.timeDay')}
         noDataMsg={t('routine.noData')}
         renderErrMsg={t('routine.renderErr')}
@@ -808,6 +855,7 @@ export const ClassRoutineManager = ({
   onAddClass,
   onDeleteClass,
   timeSlots = DEFAULT_TIME_SLOTS,
+  tiffinConfig = DEFAULT_TIFFIN_CONFIG,
   user: userProp,
   onSelectedClassChange,
 }) => {
@@ -1151,6 +1199,7 @@ export const ClassRoutineManager = ({
         days={STATIC_DAYS_BN}
         displayDays={displayDays}
         tiffinLabel={t('routine.tiffin')}
+        tiffinConfig={tiffinConfig}
         timeDayLabel={t('routine.timeDay')}
         noDataMsg={t('routine.noData')}
         renderErrMsg={t('routine.renderErr')}
@@ -1207,7 +1256,9 @@ const SchoolRoutineManager = ({
   onDeleteClass: onDeleteClassProp,
   readOnly = false,
   timeSlots = DEFAULT_TIME_SLOTS,
-  onSaveTimeSlots
+  onSaveTimeSlots,
+  tiffinConfig: tiffinConfigProp,
+  onSaveTiffinConfig: onSaveTiffinConfigProp,
 }) => {
   const { user } = useAuth();
   const { showAlert } = useAlert();
@@ -1217,6 +1268,35 @@ const SchoolRoutineManager = ({
   const [activeTab, setActiveTab] = useState('teacher');
   const [showTimeCustomizer, setShowTimeCustomizer] = useState(false);
   const [tempTimeSlots, setTempTimeSlots] = useState(safeTimeSlots);
+
+  // Stateful tiffin configuration
+  const [tiffinConfig, setTiffinConfig] = useState(() => {
+    if (tiffinConfigProp && typeof tiffinConfigProp === 'object') {
+      return { ...DEFAULT_TIFFIN_CONFIG, ...tiffinConfigProp };
+    }
+    try {
+      const cached = localStorage.getItem('teacherPanelTiffinConfig');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object') {
+          return { ...DEFAULT_TIFFIN_CONFIG, ...parsed };
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    return DEFAULT_TIFFIN_CONFIG;
+  });
+
+  const [tempTiffinConfig, setTempTiffinConfig] = useState(tiffinConfig);
+
+  useEffect(() => {
+    if (tiffinConfigProp && typeof tiffinConfigProp === 'object') {
+      setTiffinConfig(prev => ({ ...prev, ...tiffinConfigProp }));
+      setTempTiffinConfig(prev => ({ ...prev, ...tiffinConfigProp }));
+    }
+  }, [tiffinConfigProp]);
+
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const [selectedClass, setSelectedClass] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -1483,16 +1563,34 @@ const SchoolRoutineManager = ({
   }, []);
 
   const handleSaveTimeSlots = useCallback(() => {
-    if (onSaveTimeSlots && tempTimeSlots.length > 0) {
-      onSaveTimeSlots(tempTimeSlots);
+    if (tempTimeSlots.length > 0) {
+      if (onSaveTimeSlots) {
+        onSaveTimeSlots(tempTimeSlots);
+      }
+      setTiffinConfig(tempTiffinConfig);
+      try {
+        localStorage.setItem('teacherPanelTiffinConfig', JSON.stringify(tempTiffinConfig));
+      } catch (e) {}
+      if (onSaveTiffinConfigProp) {
+        onSaveTiffinConfigProp(tempTiffinConfig);
+      }
+      saveTeacherPanelData({
+        classes: localClasses,
+        teachers: teachers,
+        teacherRoutines: localTeacherRoutines,
+        timeSlots: tempTimeSlots,
+        tiffinConfig: tempTiffinConfig,
+      }).catch(err => console.warn('Could not save routine & tiffin to Firestore:', err));
+
       setShowTimeCustomizer(false);
     }
-  }, [tempTimeSlots, onSaveTimeSlots]);
+  }, [tempTimeSlots, tempTiffinConfig, onSaveTimeSlots, onSaveTiffinConfigProp, localClasses, teachers, localTeacherRoutines]);
 
   const handleCancelTimeSlots = useCallback(() => {
     setTempTimeSlots([...safeTimeSlots]);
+    setTempTiffinConfig(tiffinConfig);
     setShowTimeCustomizer(false);
-  }, [safeTimeSlots]);
+  }, [safeTimeSlots, tiffinConfig]);
 
   const canSaveRoutine = useMemo(() => {
     if (!readOnly) return true;
@@ -1518,6 +1616,7 @@ const SchoolRoutineManager = ({
       // 1. Persist local cache to localStorage
       localStorage.setItem('teacherPanelClasses', JSON.stringify(localClasses));
       localStorage.setItem('teacherPanelRoutines', JSON.stringify(localTeacherRoutines));
+      localStorage.setItem('teacherPanelTiffinConfig', JSON.stringify(tiffinConfig));
 
       // 2. Persist complete payload to Firestore
       await saveTeacherPanelData({
@@ -1525,6 +1624,7 @@ const SchoolRoutineManager = ({
         teachers: teachers,
         teacherRoutines: localTeacherRoutines,
         timeSlots: safeTimeSlots,
+        tiffinConfig: tiffinConfig,
       });
 
       const isClassTab = activeTab === 'class';
@@ -1557,30 +1657,30 @@ const SchoolRoutineManager = ({
           <h2 className="routine-display" style={{ fontSize: 25, fontWeight: 700, color: '#fff', margin: 0 }}>{t('routine.title')}</h2>
         </div>
 
-        <div className="routine-print-hide" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="routine-print-hide routine-header-actions" style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           {!readOnly && (
             <button
               onClick={() => setShowTimeCustomizer(!showTimeCustomizer)}
               className="routine-toolbtn"
               style={{ padding: '9px 16px', borderRadius: 8, fontWeight: 600, fontSize: 13.5, border: `1px solid ${showTimeCustomizer ? TOKENS.marigold : 'rgba(255,255,255,0.25)'}`, cursor: 'pointer', background: showTimeCustomizer ? TOKENS.marigold : 'rgba(255,255,255,0.08)', color: showTimeCustomizer ? TOKENS.indigoDeep : '#fff' }}
             >
-              ⏱️ সময় পরিবর্তন
+              ⏱️ সময় পরিবর্তন
             </button>
           )}
           <div className="routine-tab-container" style={{ display: 'flex', background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 4 }}>
             <button
               onClick={() => setActiveTab('teacher')}
               className="routine-tab"
-              style={{ padding: '9px 18px', borderRadius: 7, fontWeight: 600, fontSize: 13.5, border: 0, cursor: 'pointer', background: activeTab === 'teacher' ? TOKENS.marigold : 'transparent', color: activeTab === 'teacher' ? TOKENS.indigoDeep : '#E7EBF5' }}
+              style={{ padding: '9px 14px', borderRadius: 7, fontWeight: 600, fontSize: 13, border: 0, cursor: 'pointer', background: activeTab === 'teacher' ? TOKENS.marigold : 'transparent', color: activeTab === 'teacher' ? TOKENS.indigoDeep : '#E7EBF5' }}
             >
-              {t('nav.teachers')} {t('routine.title')}
+              👨‍🏫 {t('nav.teachers')}
             </button>
             <button
               onClick={() => setActiveTab('class')}
               className="routine-tab"
-              style={{ padding: '9px 18px', borderRadius: 7, fontWeight: 600, fontSize: 13.5, border: 0, cursor: 'pointer', background: activeTab === 'class' ? '#7FD9A8' : 'transparent', color: activeTab === 'class' ? TOKENS.forestDeep : '#E7EBF5' }}
+              style={{ padding: '9px 14px', borderRadius: 7, fontWeight: 600, fontSize: 13, border: 0, cursor: 'pointer', background: activeTab === 'class' ? '#7FD9A8' : 'transparent', color: activeTab === 'class' ? TOKENS.forestDeep : '#E7EBF5' }}
             >
-              {t('results.class')} {t('routine.title')}
+              🏫 {t('results.class')}
             </button>
           </div>
         </div>
@@ -1624,6 +1724,131 @@ const SchoolRoutineManager = ({
               </div>
             ))}
           </div>
+
+          {/* Tiffin Customization Card */}
+          <div style={{
+            marginTop: 14,
+            marginBottom: 18,
+            padding: '16px 18px',
+            background: 'linear-gradient(135deg, #FFFDF7 0%, #FEF9EE 100%)',
+            borderRadius: 12,
+            border: '1.5px solid #FCD34D',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+            boxShadow: '0 2px 8px rgba(217, 119, 6, 0.08)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 22 }}>🍱</span>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#92400E' }}>
+                    টিফিন সময়সূচী কাস্টমাইজেশন (Tiffin Break Settings)
+                  </h4>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#B45309' }}>
+                    রুটিনে টিফিনের নির্দিষ্ট সময় ও অবস্থান নির্ধারণ করুন (যেমন: ২:০০-৩:০০ বা ১২:৫০-১:৩০)
+                  </p>
+                </div>
+              </div>
+
+              {/* Toggle enable / disable */}
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#92400E', background: '#ffffff', padding: '6px 14px', borderRadius: 20, border: '1px solid #FDE68A', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                <input
+                  type="checkbox"
+                  checked={tempTiffinConfig?.enabled !== false}
+                  onChange={(e) => setTempTiffinConfig(prev => ({ ...prev, enabled: e.target.checked }))}
+                  style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#D97706' }}
+                />
+                টিফিন বিরতি চালু রাখুন
+              </label>
+            </div>
+
+            {tempTiffinConfig?.enabled !== false && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, paddingTop: 4 }}>
+                {/* 1. Tiffin Time input */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800, color: '#92400E', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span>⏰ টিফিন সময় (Tiffin Time):</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={tempTiffinConfig?.time || ''}
+                    onChange={(e) => setTempTiffinConfig(prev => ({ ...prev, time: e.target.value }))}
+                    placeholder="যেমন: ২:০০-৩:০০ বা ১২:৫০-১:৩০"
+                    className="routine-select"
+                    style={{
+                      padding: '9px 12px',
+                      borderRadius: 8,
+                      border: '1.5px solid #F59E0B',
+                      background: '#ffffff',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: '#78350F',
+                      textAlign: 'center',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    }}
+                  />
+                  {/* Quick Presets */}
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4, alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#B45309' }}>কুইক সেট:</span>
+                    {['১২:৫০-১:৩০', '১:০০-১:৪০', '১:৩০-২:১০', '২:০০-৩:০০'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setTempTiffinConfig(prev => ({ ...prev, time: preset }))}
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          border: '1px solid #FCD34D',
+                          background: tempTiffinConfig?.time === preset ? '#D97706' : '#FFFBEB',
+                          color: tempTiffinConfig?.time === preset ? '#ffffff' : '#92400E',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Tiffin Placement (After which period) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800, color: '#92400E', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span>📍 কোন পিরিয়ডের পরে টিফিন বসবে?</span>
+                  </label>
+                  <select
+                    value={tempTiffinConfig?.afterPeriod ?? 5}
+                    onChange={(e) => setTempTiffinConfig(prev => ({ ...prev, afterPeriod: Number(e.target.value) }))}
+                    className="routine-select"
+                    style={{
+                      padding: '9px 12px',
+                      borderRadius: 8,
+                      border: '1.5px solid #F59E0B',
+                      background: '#ffffff',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: '#78350F',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    {tempTimeSlots.map((_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        পিরিয়ড {i + 1} এর পরে
+                      </option>
+                    ))}
+                  </select>
+                  <span style={{ fontSize: 11, color: '#B45309' }}>
+                    রুটিন টেবিলে নির্বাচিত পিরিয়ডের ঠিক পরে টিফিন কলাম ও সময় প্রদর্শিত হবে।
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button
               onClick={handleCancelTimeSlots}
@@ -1676,6 +1901,7 @@ const SchoolRoutineManager = ({
             onUpdate={handleRoutineUpdate}
             readOnly={readOnly}
             timeSlots={safeTimeSlots}
+            tiffinConfig={tiffinConfig}
           />
         ) : (
           <div style={{ background: TOKENS.paper, borderRadius: 12, padding: 36, textAlign: 'center', color: TOKENS.muted, fontSize: 14, border: `1px dashed ${TOKENS.line}` }}>
@@ -1692,6 +1918,7 @@ const SchoolRoutineManager = ({
           onAddClass={handleAddClass}
           onDeleteClass={handleDeleteClass}
           timeSlots={safeTimeSlots}
+          tiffinConfig={tiffinConfig}
           user={user}
           onSelectedClassChange={setSelectedClass}
         />

@@ -39,9 +39,11 @@ export default function NotificationBell({ userRole = 'student', userId = 'guest
     };
     if (open) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside, { passive: true });
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [open]);
 
@@ -75,7 +77,7 @@ export default function NotificationBell({ userRole = 'student', userId = 'guest
   };
 
   return (
-    <div className="tp-bell-wrap" ref={popoverRef} style={{ position: 'relative' }}>
+    <div className="tp-bell-wrap" ref={popoverRef}>
       <button
         className="tp-icon-btn"
         aria-label="Notifications"
@@ -96,21 +98,38 @@ export default function NotificationBell({ userRole = 'student', userId = 'guest
 
       {/* Dropdown Drawer Popover */}
       {open && (
-        <div className="tp-notif-popover">
-          <div className="tp-notif-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16 }}>🔔</span>
-              <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1a2e4a' }}>Notifications</h4>
-              {unreadCount > 0 && (
-                <span className="tp-notif-count-pill">{unreadCount} new</span>
-              )}
+        <>
+          <div
+            className="tp-notif-backdrop"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="tp-notif-popover">
+            <div className="tp-notif-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <span style={{ fontSize: 16 }}>🔔</span>
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1a2e4a', whiteSpace: 'nowrap' }}>Notifications</h4>
+                {unreadCount > 0 && (
+                  <span className="tp-notif-count-pill">{unreadCount} new</span>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                {unreadCount > 0 && (
+                  <button className="tp-notif-mark-btn" onClick={handleMarkAllRead}>
+                    Mark all read
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="tp-notif-close-btn"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close notifications"
+                  title="Close"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
-            {unreadCount > 0 && (
-              <button className="tp-notif-mark-btn" onClick={handleMarkAllRead}>
-                Mark all read
-              </button>
-            )}
-          </div>
 
           <div className="tp-notif-list">
             {notices.length === 0 ? (
@@ -169,7 +188,8 @@ export default function NotificationBell({ userRole = 'student', userId = 'guest
             )}
           </div>
         </div>
-      )}
-    </div>
+      </>
+    )}
+  </div>
   );
 }
